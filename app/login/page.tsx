@@ -150,10 +150,14 @@ function LoginForm() {
       </div>
 
       {/* Right panel — form */}
-      <div className="flex w-full items-center justify-center bg-gradient-to-br from-slate-50 to-brand-50/30 px-6 py-10 lg:w-1/2">
-        <div className="w-full max-w-md">
+      <div className="relative flex w-full items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-brand-50/40 px-6 py-10 lg:w-1/2">
+        {/* decorative circles */}
+        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand-100/30" />
+        <div className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-brand-200/20" />
+
+        <div className="relative z-10 w-full max-w-md space-y-6">
           <div className="rounded-2xl border border-brand-100/60 bg-white p-8 shadow-xl shadow-brand-900/5">
-            <div className="mb-8">
+            <div className="mb-6">
               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 lg:hidden">
                 <GraduationCap className="h-6 w-6 text-brand-600" />
               </div>
@@ -161,92 +165,111 @@ function LoginForm() {
               <p className="mt-1 text-sm text-slate-500">Sign in to your account to continue</p>
             </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {justVerified && (
-              <div className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700">
-                Email verified — you can sign in now.
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {justVerified && (
+                <div className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700">
+                  Email verified — you can sign in now.
+                </div>
+              )}
+
+              {justRegistered && (
+                <div className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700">
+                  Account created successfully — you can now sign in.
+                </div>
+              )}
+
+              {error && (
+                <div className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">
+                  {error}
+                  {error.includes("verify your email") && (
+                    <button
+                      type="button"
+                      onClick={resendVerification}
+                      className="ml-1 font-semibold underline"
+                    >
+                      Resend verification email
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {resent && (
+                <div className="rounded-lg bg-brand-50 px-3 py-2.5 text-sm text-brand-700">
+                  Verification email resent — check your inbox.
+                </div>
+              )}
+
+              {resetSent && (
+                <div className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700">
+                  Password reset email sent — check your inbox for the link.
+                </div>
+              )}
+
+              <div>
+                <label className="label">Email</label>
+                <input
+                  type="email"
+                  required
+                  className="input"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@regismarie.edu.ph"
+                />
               </div>
-            )}
 
-            {justRegistered && (
-              <div className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700">
-                Account created successfully — you can now sign in.
+              <div>
+                <label className="label">Password</label>
+                <input
+                  type="password"
+                  required
+                  className="input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                />
               </div>
-            )}
 
-            {error && (
-              <div className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">
-                {error}
-                {error.includes("verify your email") && (
-                  <button
-                    type="button"
-                    onClick={resendVerification}
-                    className="ml-1 font-semibold underline"
-                  >
-                    Resend verification email
-                  </button>
-                )}
+              <div className="flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-xs font-medium text-brand-600 hover:underline"
+                >
+                  Forgot password?
+                </button>
               </div>
-            )}
 
-            {resent && (
-              <div className="rounded-lg bg-brand-50 px-3 py-2.5 text-sm text-brand-700">
-                Verification email resent — check your inbox.
-              </div>
-            )}
-
-            {resetSent && (
-              <div className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700">
-                Password reset email sent — check your inbox for the link.
-              </div>
-            )}
-
-            <div>
-              <label className="label">Email</label>
-              <input
-                type="email"
-                required
-                className="input"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@regismarie.edu.ph"
-              />
-            </div>
-
-            <div>
-              <label className="label">Password</label>
-              <input
-                type="password"
-                required
-                className="input"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-              />
-            </div>
-
-            <div className="flex items-center justify-end">
-              <button
-                type="button"
-                onClick={handleForgotPassword}
-                className="text-xs font-medium text-brand-600 hover:underline"
-              >
-                Forgot password?
+              <button type="submit" disabled={loading} className="btn-primary flex w-full items-center justify-center gap-2">
+                {loading ? "Signing in…" : "Sign In"}
+                {!loading && <ArrowRight className="h-4 w-4" />}
               </button>
+            </form>
+
+            <p className="mt-5 text-center text-sm text-slate-500">
+              No account yet?{" "}
+              <Link href="/register" className="font-semibold text-brand-600 hover:underline">
+                Register here
+              </Link>
+            </p>
+          </div>
+
+          {/* How it works */}
+          <div className="rounded-xl border border-brand-100/40 bg-white/60 p-5 backdrop-blur">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">How it works</p>
+            <div className="space-y-2.5">
+              {[
+                { step: "1", text: "Register your student or alumni account" },
+                { step: "2", text: "Submit a document request and pay via GCash" },
+                { step: "3", text: "Track your request in real-time until pickup" },
+              ].map((s) => (
+                <div key={s.step} className="flex items-center gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-500 text-[11px] font-bold text-white">
+                    {s.step}
+                  </span>
+                  <p className="text-sm text-slate-600">{s.text}</p>
+                </div>
+              ))}
             </div>
-
-            <button type="submit" disabled={loading} className="btn-primary flex w-full items-center justify-center gap-2">
-              {loading ? "Signing in…" : "Sign In"}
-              {!loading && <ArrowRight className="h-4 w-4" />}
-            </button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-slate-500">
-            No account yet?{" "}
-            <Link href="/register" className="font-semibold text-brand-600 hover:underline">
-              Register here
-            </Link>
-          </p>
           </div>
         </div>
       </div>
