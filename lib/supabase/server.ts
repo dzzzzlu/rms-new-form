@@ -1,0 +1,45 @@
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+type CookieToSet = { name: string; value: string; options: CookieOptions };
+
+export function createClient() {
+  const cookieStore = cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet: CookieToSet[]) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // called from a Server Component; middleware refreshes the session instead
+          }
+        },
+      },
+    }
+  );
+}
+
+/** Fetches the signed-in user's profile row (role, full_name, etc). Returns null if not signed in. */
+export async function getProfile() {
+  const supabase = createClient();
+  // @ts-expect-error @supabase/ssr SupabaseAuthClient type mismatch — works at runtime
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  return profile;
+}
