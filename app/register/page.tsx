@@ -35,7 +35,6 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
 
   function update(key: string, value: string | boolean) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -89,26 +88,7 @@ export default function RegisterPage() {
     }
 
     setLoading(false);
-    setSubmitted(true);
-  }
-
-  if (submitted) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-900 via-brand-700 to-brand-500 px-4">
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-2xl">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50">
-            <CheckCircle2 className="h-7 w-7 text-emerald-600" />
-          </div>
-          <h2 className="text-lg font-bold text-brand-900">Account Created Successfully</h2>
-          <p className="mt-2 text-sm text-slate-500">
-            Your account has been created. You can now sign in with your credentials.
-          </p>
-          <Link href="/login" className="btn-primary mt-6 inline-flex">
-            Go to Sign In
-          </Link>
-        </div>
-      </main>
-    );
+    router.push("/login?registered=1");
   }
 
   return (

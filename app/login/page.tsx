@@ -25,6 +25,7 @@ function LoginForm() {
   const [resent, setResent] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const justVerified = searchParams.get("verified") === "1";
+  const justRegistered = searchParams.get("registered") === "1";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -104,6 +105,12 @@ function LoginForm() {
           {justVerified && (
             <div className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
               Email verified — you can sign in now.
+            </div>
+          )}
+
+          {justRegistered && (
+            <div className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+              Account created successfully — you can now sign in.
             </div>
           )}
 
