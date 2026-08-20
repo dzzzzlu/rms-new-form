@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
 export default async function AdminDashboard() {
   const supabase = createClient();
@@ -9,6 +10,10 @@ export default async function AdminDashboard() {
   const { count: requestCount } = await supabase
     .from("requests")
     .select("*", { count: "exact", head: true });
+  const { count: pendingPayments } = await supabase
+    .from("payments")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "Pending");
 
   return (
     <div className="space-y-6">
@@ -18,24 +23,18 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="card">
+        <Link href="/admin/users" className="card hover:shadow-md transition-shadow">
           <p className="text-sm text-slate-500">Total Users</p>
           <p className="text-3xl font-bold text-brand-700">{userCount ?? 0}</p>
-        </div>
-        <div className="card">
+        </Link>
+        <Link href="/admin/analytics" className="card hover:shadow-md transition-shadow">
           <p className="text-sm text-slate-500">Total Requests</p>
           <p className="text-3xl font-bold text-brand-700">{requestCount ?? 0}</p>
-        </div>
-        <div className="card">
-          <p className="text-sm text-slate-500">System Status</p>
-          <p className="text-lg font-semibold text-emerald-600">● Online</p>
-        </div>
-      </div>
-
-      <div className="card">
-        <p className="text-sm text-slate-500">
-          User management, analytics charts, and reports are built out in the next phase.
-        </p>
+        </Link>
+        <Link href="/registrar/payments" className="card hover:shadow-md transition-shadow">
+          <p className="text-sm text-slate-500">Pending Payments</p>
+          <p className="text-3xl font-bold text-brand-700">{pendingPayments ?? 0}</p>
+        </Link>
       </div>
     </div>
   );

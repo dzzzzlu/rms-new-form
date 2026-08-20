@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Payment } from "@/lib/types";
 import { CreditCard } from "lucide-react";
+import { toast } from "sonner";
 
 type PaymentRow = Payment & {
   requests: { tracking_code: string; profiles: { full_name: string } | null } | null;
@@ -14,6 +15,9 @@ export default function VerifyPaymentsPage() {
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [previews, setPreviews] = useState<Record<number, string>>({});
+  const [rejectingId, setRejectingId] = useState<number | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [decidingId, setDecidingId] = useState<number | null>(null);
 
   async function load() {
     setLoading(true);
@@ -24,14 +28,15 @@ export default function VerifyPaymentsPage() {
       .order("created_at", { ascending: false });
     setPayments((data as unknown as PaymentRow[]) ?? []);
 
-    for (const p of data ?? []) {
-      const { data: signed } = await supabase.storage
-        .from("payment-proofs")
-        .createSignedUrl(p.proof_image, 60 * 10);
-      if (signed?.signedUrl) {
-        setPreviews((prev) => ({ ...prev, [p.id]: signed.signedUrl }));
-      }
-    }
+    const signedUrls = await Promise.all(
+      (data ?? []).map(async (p) => {
+        const { data: signed } = await supabase.storage
+          .from("payment-proofs")
+          .createSignedUrl(p.proof_image, 60 * 10);
+        return [p.id, signed?.signedUrl ?? ""] as const;
+      })
+    );
+    setPreviews(Object.fromEntries(signedUrls.filter(([, url]) => url)));
     setLoading(false);
   }
 
@@ -40,9 +45,14 @@ export default function VerifyPaymentsPage() {
   }, []);
 
   async function decide(payment: PaymentRow, approve: boolean, reason?: string) {
+    if (!window.confirm(approve ? "Approve this payment?" : `Reject this payment? Reason: ${reason || "No reason provided"}`)) {
+      return;
+    }
+
+    setDecidingId(payment.id);
     const { data: { user } } = await supabase.auth.getUser();
 
-    await supabase
+    const { error: payErr } = await supabase
       .from("payments")
       .update({
         status: approve ? "Verified" : "Rejected",
@@ -52,11 +62,27 @@ export default function VerifyPaymentsPage() {
       })
       .eq("id", payment.id);
 
-    await supabase
+    const { error: reqErr } = await supabase
       .from("requests")
       .update({ status: approve ? "Processing" : "Rejected" })
       .eq("id", payment.request_id);
 
+    if (payErr || reqErr) {
+      toast.error("Failed to process payment.");
+      setDecidingId(null);
+      return;
+    }
+
+    await supabase.from("status_history").insert({
+      request_id: payment.request_id,
+      status: approve ? "Processing" : "Rejected",
+      remarks: reason ?? null,
+    });
+
+    toast.success(approve ? "Payment verified." : "Payment rejected.");
+    setDecidingId(null);
+    setRejectingId(null);
+    setRejectReason("");
     load();
   }
 
@@ -95,22 +121,56 @@ export default function VerifyPaymentsPage() {
                 <p className="text-xs text-slate-500">{p.requests?.tracking_code}</p>
               </div>
               {previews[p.id] && (
-                <img src={previews[p.id]} alt="Payment proof" className="w-full rounded-lg border" />
+                <a href={previews[p.id]} target="_blank" rel="noopener noreferrer">
+                  <img src={previews[p.id]} alt="Payment proof" className="w-full rounded-lg border hover:opacity-90" />
+                </a>
               )}
               <p className="text-sm text-slate-600">
                 Ref: <span className="font-medium">{p.gcash_reference}</span> · ₱{p.amount}
               </p>
-              <div className="flex gap-2">
-                <button onClick={() => decide(p, true)} className="btn-primary flex-1">
-                  Approve
-                </button>
-                <button
-                  onClick={() => decide(p, false, "Payment could not be verified")}
-                  className="btn-outline flex-1"
-                >
-                  Reject
-                </button>
-              </div>
+
+              {rejectingId === p.id ? (
+                <div className="space-y-2">
+                  <textarea
+                    className="input min-h-[60px]"
+                    placeholder="Reason for rejection (required)..."
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => decide(p, false, rejectReason || "Payment could not be verified")}
+                      disabled={!rejectReason.trim() || decidingId === p.id}
+                      className="btn-outline flex-1"
+                    >
+                      {decidingId === p.id ? "Submitting…" : "Confirm Reject"}
+                    </button>
+                    <button
+                      onClick={() => { setRejectingId(null); setRejectReason(""); }}
+                      className="btn-outline flex-1"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => decide(p, true)}
+                    disabled={decidingId === p.id}
+                    className="btn-primary flex-1"
+                  >
+                    {decidingId === p.id ? "Processing…" : "Approve"}
+                  </button>
+                  <button
+                    onClick={() => setRejectingId(p.id)}
+                    disabled={decidingId === p.id}
+                    className="btn-outline flex-1"
+                  >
+                    Reject
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RequestWithRelations } from "@/lib/types";
 import { Inbox } from "lucide-react";
+import { toast } from "sonner";
 
 const STATUSES = [
   "Pending",
@@ -21,15 +22,19 @@ export default function ManageRequestsPage() {
   const [requests, setRequests] = useState<RequestWithRelations[]>([]);
   const [filter, setFilter] = useState<string>("All");
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
 
   async function load() {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("requests")
       .select(
         "id, tracking_code, purpose, copies, status, guidance_status, clearance_status, class_list, created_at, documents(name), profiles(full_name, student_number)"
       )
       .order("created_at", { ascending: false });
+    if (error) {
+      toast.error("Failed to load requests.");
+    }
     setRequests((data as unknown as RequestWithRelations[]) ?? []);
     setLoading(false);
   }
@@ -41,21 +46,40 @@ export default function ManageRequestsPage() {
   async function updateStatus(r: RequestWithRelations, status: string) {
     if (RELEASE_STATUSES.includes(status)) {
       if (r.documents?.name === "Good Moral Certificate" && r.guidance_status !== "Approved") {
-        alert("This Good Moral request hasn't been approved by the Guidance Department yet.");
+        toast.error("This Good Moral request hasn't been approved by the Guidance Department yet.");
         return;
       }
       if (r.documents?.name === "Diploma" && r.clearance_status !== "Approved") {
-        alert("This Diploma request hasn't cleared all offices yet.");
+        toast.error("This Diploma request hasn't cleared all offices yet.");
         return;
       }
     }
-    await supabase.from("requests").update({ status }).eq("id", r.id);
+
+    if (!window.confirm(`Change "${r.documents?.name}" (${r.tracking_code}) to "${status}"?`)) {
+      return;
+    }
+
+    setUpdatingId(r.id);
+    const { error } = await supabase.from("requests").update({ status }).eq("id", r.id);
+    if (error) {
+      toast.error("Failed to update status.");
+      setUpdatingId(null);
+      return;
+    }
     await supabase.from("status_history").insert({ request_id: r.id, status });
+    toast.success(`Status changed to "${status}".`);
+    setUpdatingId(null);
     load();
   }
 
   async function setClearance(id: number, status: "Approved" | "Rejected") {
-    await supabase.from("requests").update({ clearance_status: status }).eq("id", id);
+    if (!window.confirm(`Mark clearance as ${status}?`)) return;
+    const { error } = await supabase.from("requests").update({ clearance_status: status }).eq("id", id);
+    if (error) {
+      toast.error("Failed to update clearance.");
+      return;
+    }
+    toast.success(`Clearance marked as ${status}.`);
     load();
   }
 
@@ -66,7 +90,9 @@ export default function ManageRequestsPage() {
       <div className="card flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold text-brand-900">Manage Requests</h2>
-          <p className="text-sm text-slate-500">Update status as requests move through processing.</p>
+          <p className="text-sm text-slate-500">
+            {requests.length} total · {filter !== "All" ? visible.length + " shown" : "all"}
+          </p>
         </div>
         <select className="input w-auto" value={filter} onChange={(e) => setFilter(e.target.value)}>
           <option>All</option>
@@ -112,6 +138,7 @@ export default function ManageRequestsPage() {
                 <select
                   className="input w-auto"
                   value={r.status}
+                  disabled={updatingId === r.id}
                   onChange={(e) => updateStatus(r, e.target.value)}
                 >
                   {STATUSES.map((s) => (

@@ -4,8 +4,11 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile, UserRole } from "@/lib/types";
 import { Users } from "lucide-react";
+import { toast } from "sonner";
 
 const ROLES: readonly UserRole[] = ["student", "registrar", "admin", "guidance"] as const;
+
+const PAGE_SIZE = 20;
 
 export default function ManageUsersPage() {
   const supabase = createClient();
@@ -13,10 +16,12 @@ export default function ManageUsersPage() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  const [page, setPage] = useState(0);
 
   async function load() {
     setLoading(true);
-    const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+    if (error) toast.error("Failed to load users.");
     setUsers((data as unknown as Profile[]) ?? []);
     setLoading(false);
   }
@@ -26,12 +31,24 @@ export default function ManageUsersPage() {
   }, []);
 
   async function setRole(id: string, role: UserRole) {
-    await supabase.from("profiles").update({ role }).eq("id", id);
+    if (!window.confirm(`Change this user's role to "${role}"?`)) return;
+    const { error } = await supabase.from("profiles").update({ role }).eq("id", id);
+    if (error) {
+      toast.error("Failed to update role.");
+      return;
+    }
+    toast.success(`Role changed to "${role}".`);
     load();
   }
 
   async function toggleActive(id: string, isActive: boolean) {
-    await supabase.from("profiles").update({ is_active: !isActive }).eq("id", id);
+    if (!window.confirm(isActive ? "Archive this user?" : "Restore this user?")) return;
+    const { error } = await supabase.from("profiles").update({ is_active: !isActive }).eq("id", id);
+    if (error) {
+      toast.error("Failed to update user.");
+      return;
+    }
+    toast.success(isActive ? "User archived." : "User restored.");
     load();
   }
 
@@ -42,6 +59,9 @@ export default function ManageUsersPage() {
         u.full_name?.toLowerCase().includes(q.toLowerCase()) ||
         u.email?.toLowerCase().includes(q.toLowerCase())
     );
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
     <div className="space-y-4">
@@ -58,7 +78,7 @@ export default function ManageUsersPage() {
             <input
               type="checkbox"
               checked={showArchived}
-              onChange={(e) => setShowArchived(e.target.checked)}
+              onChange={(e) => { setShowArchived(e.target.checked); setPage(0); }}
             />
             Show archived
           </label>
@@ -66,7 +86,7 @@ export default function ManageUsersPage() {
             className="input w-auto"
             placeholder="Search name or email…"
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => { setQ(e.target.value); setPage(0); }}
           />
         </div>
       </div>
@@ -86,48 +106,61 @@ export default function ManageUsersPage() {
             </div>
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : paged.length === 0 ? (
         <div className="empty-state card">
           <Users className="mb-3 h-10 w-10 text-slate-300" />
           <p className="text-sm font-medium text-slate-500">No users found.</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((u) => (
-            <div key={u.id} className="card flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="font-semibold text-brand-900">
-                  {u.full_name}{" "}
-                  {!u.is_active && (
-                    <span className="badge ml-1 bg-slate-100 text-slate-500">Archived</span>
-                  )}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {u.email} {u.student_number ? `· ${u.student_number}` : ""}
-                </p>
+        <>
+          <div className="space-y-3">
+            {paged.map((u) => (
+              <div key={u.id} className="card flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-brand-900">
+                    {u.full_name}{" "}
+                    {!u.is_active && (
+                      <span className="badge ml-1 bg-slate-100 text-slate-500">Archived</span>
+                    )}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {u.email} {u.student_number ? `· ${u.student_number}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    className="input w-auto"
+                    value={u.role}
+                    onChange={(e) => setRole(u.id, e.target.value as UserRole)}
+                  >
+                    {ROLES.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => toggleActive(u.id, u.is_active)}
+                    className={u.is_active ? "btn-outline" : "btn-primary"}
+                  >
+                    {u.is_active ? "Archive" : "Restore"}
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <select
-                  className="input w-auto"
-                  value={u.role}
-                  onChange={(e) => setRole(u.id, e.target.value as UserRole)}
-                >
-                  {ROLES.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={() => toggleActive(u.id, u.is_active)}
-                  className={u.is_active ? "btn-outline" : "btn-primary"}
-                >
-                  {u.is_active ? "Archive" : "Restore"}
-                </button>
-              </div>
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0} className="btn-outline !px-3 !py-1 text-sm">
+                Prev
+              </button>
+              <span className="text-sm text-slate-500">Page {page + 1} of {totalPages}</span>
+              <button onClick={() => setPage(Math.min(totalPages - 1, page + 1))} disabled={page >= totalPages - 1} className="btn-outline !px-3 !py-1 text-sm">
+                Next
+              </button>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );

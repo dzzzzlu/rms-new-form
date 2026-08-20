@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { ApprovalStatus } from "@/lib/types";
 import { ClipboardCheck } from "lucide-react";
+import { toast } from "sonner";
 
 type GoodMoralRequest = {
   id: number;
@@ -19,6 +20,7 @@ export default function GuidanceApprovalsPage() {
   const supabase = createClient();
   const [requests, setRequests] = useState<GoodMoralRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [decidingId, setDecidingId] = useState<number | null>(null);
 
   async function load() {
     setLoading(true);
@@ -38,11 +40,20 @@ export default function GuidanceApprovalsPage() {
   }, []);
 
   async function decide(id: number, status: "Approved" | "Rejected") {
-    await supabase.from("requests").update({ guidance_status: status }).eq("id", id);
+    if (!window.confirm(`${status} this Good Moral Certificate request?`)) return;
+    setDecidingId(id);
+    const { error } = await supabase.from("requests").update({ guidance_status: status }).eq("id", id);
+    if (error) {
+      toast.error("Failed to update approval.");
+      setDecidingId(null);
+      return;
+    }
     await supabase.from("status_history").insert({
       request_id: id,
       status: `Guidance ${status}`,
     });
+    toast.success(`Request ${status.toLowerCase()}.`);
+    setDecidingId(null);
     load();
   }
 
@@ -99,13 +110,21 @@ export default function GuidanceApprovalsPage() {
                   {r.guidance_status ?? "Pending"}
                 </span>
                 {r.guidance_status !== "Approved" && (
-                  <button onClick={() => decide(r.id, "Approved")} className="btn-primary">
-                    Approve
+                  <button
+                    onClick={() => decide(r.id, "Approved")}
+                    disabled={decidingId === r.id}
+                    className="btn-primary"
+                  >
+                    {decidingId === r.id ? "..." : "Approve"}
                   </button>
                 )}
                 {r.guidance_status !== "Rejected" && (
-                  <button onClick={() => decide(r.id, "Rejected")} className="btn-outline">
-                    Reject
+                  <button
+                    onClick={() => decide(r.id, "Rejected")}
+                    disabled={decidingId === r.id}
+                    className="btn-outline"
+                  >
+                    {decidingId === r.id ? "..." : "Reject"}
                   </button>
                 )}
               </div>

@@ -27,6 +27,7 @@ const NAV: Record<Role, { label: string; href: string; icon: LucideIcon }[]> = {
     { label: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
     { label: "New Request", href: "/student/new-request", icon: PlusCircle },
     { label: "My History", href: "/student/history", icon: Clock },
+    { label: "My Payments", href: "/student/payments", icon: CreditCard },
     { label: "My Profile", href: "/student/profile", icon: User },
   ],
   registrar: [
@@ -82,7 +83,7 @@ export default function Sidebar({
         <div
           className="fixed inset-0 z-30 bg-black/40 transition-opacity lg:hidden"
           onClick={onClose}
-          aria-hidden
+          aria-hidden="true"
         />
       )}
 

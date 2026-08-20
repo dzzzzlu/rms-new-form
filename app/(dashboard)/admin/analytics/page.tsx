@@ -84,13 +84,18 @@ export default function AnalyticsPage() {
   }, [filtered]);
 
   const monthData = useMemo(() => {
-    const map: Record<string, number> = {};
+    const map: Record<string, { count: number; sortKey: string }> = {};
     for (const r of filtered) {
       const d = new Date(r.created_at);
       const key = d.toLocaleString("default", { month: "short", year: "2-digit" });
-      map[key] = (map[key] ?? 0) + 1;
+      const sortKey = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, "0")}`;
+      if (!map[key]) map[key] = { count: 0, sortKey };
+      map[key].count++;
     }
-    return Object.entries(map).map(([name, count]) => ({ name, count }));
+    return Object.entries(map)
+      .map(([name, { count, sortKey }]) => ({ name, count, sortKey }))
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+      .map(({ name, count }) => ({ name, count }));
   }, [filtered]);
 
   const documentData = useMemo(() => {

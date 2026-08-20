@@ -96,7 +96,6 @@ export default function RegisterPage() {
           contact_number: form.contact_number,
           is_alumni: form.is_alumni,
           school_year: form.is_alumni ? form.school_year : null,
-          role: "student",
         },
       },
     });

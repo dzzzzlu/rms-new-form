@@ -44,6 +44,7 @@ export default function NewRequestPage() {
 
     if (!documentId) return setError("Please choose a document type.");
     if (!proofFile) return setError("Please attach your GCash payment proof.");
+    if (proofFile.size > 5 * 1024 * 1024) return setError("Payment proof must be under 5MB.");
 
     const purposeErr = validatePurpose(purpose);
     if (purposeErr) return setError(purposeErr);

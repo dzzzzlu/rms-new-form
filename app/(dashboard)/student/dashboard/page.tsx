@@ -1,20 +1,23 @@
+import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import type { RecentRequest } from "@/lib/types";
+import Link from "next/link";
 import { FileText } from "lucide-react";
 
 export default async function StudentDashboard() {
   const profile = await getProfile();
+  if (!profile) redirect("/login");
   const supabase = createClient();
 
   const { count: totalRequests } = await supabase
     .from("requests")
     .select("*", { count: "exact", head: true })
-    .eq("user_id", profile!.id);
+    .eq("user_id", profile.id);
 
   const { data: recent } = await supabase
     .from("requests")
     .select("id, tracking_code, status, created_at, documents(name)")
-    .eq("user_id", profile!.id)
+    .eq("user_id", profile.id)
     .order("created_at", { ascending: false })
     .limit(5);
 
@@ -43,7 +46,13 @@ export default async function StudentDashboard() {
       </div>
 
       <div className="card">
-        <h3 className="mb-3 font-semibold text-brand-900">Recent Requests</h3>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-semibold text-brand-900">Recent Requests</h3>
+          {typedRecent.length > 0 && (
+            <Link href="/student/history" className="text-sm font-medium text-brand-600 hover:underline">
+              View All →
+            </Link>
+          )}
         {!typedRecent || typedRecent.length === 0 ? (
           <div className="flex flex-col items-center py-6 text-center">
             <FileText className="mb-2 h-8 w-8 text-slate-300" />

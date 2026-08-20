@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import type { RequestStatus } from "@/lib/types";
+import Link from "next/link";
 import { Clock } from "lucide-react";
 
 const STATUS_COLOR: Record<string, string> = {
@@ -23,12 +25,13 @@ type HistoryRequest = {
 
 export default async function HistoryPage() {
   const profile = await getProfile();
+  if (!profile) redirect("/login");
   const supabase = createClient();
 
   const { data: requests } = await supabase
     .from("requests")
     .select("id, tracking_code, purpose, copies, status, created_at, documents(name, fee)")
-    .eq("user_id", profile!.id)
+    .eq("user_id", profile.id)
     .order("created_at", { ascending: false });
 
   const typedRequests = (requests ?? []) as unknown as HistoryRequest[];
@@ -48,7 +51,7 @@ export default async function HistoryPage() {
       ) : (
         <div className="space-y-3">
           {typedRequests.map((r) => (
-            <div key={r.id} className="card flex flex-wrap items-center justify-between gap-3">
+            <Link key={r.id} href={`/student/requests/${r.id}`} className="card flex flex-wrap items-center justify-between gap-3 hover:shadow-md transition-shadow">
               <div>
                 <p className="font-semibold text-brand-900">{r.documents?.name}</p>
                 <p className="text-xs text-slate-500">
@@ -60,7 +63,7 @@ export default async function HistoryPage() {
               <span className={`badge ${STATUS_COLOR[r.status] ?? "bg-slate-100 text-slate-700"}`}>
                 {r.status}
               </span>
-            </div>
+            </Link>
           ))}
         </div>
       )}
