@@ -52,7 +52,6 @@ export default function NewRequestPage() {
     if (!gcashRef.trim()) return setError("Please enter your GCash reference number.");
 
     setLoading(true);
-    // @ts-expect-error @supabase/ssr SupabaseAuthClient type mismatch — works at runtime
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return setError("Not signed in.");
 

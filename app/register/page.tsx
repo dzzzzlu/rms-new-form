@@ -49,7 +49,6 @@ export default function RegisterPage() {
 
     setLoading(true);
 
-    // @ts-expect-error @supabase/ssr SupabaseAuthClient type mismatch — works at runtime
     const { error } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,

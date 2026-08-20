@@ -40,7 +40,6 @@ export default function VerifyPaymentsPage() {
   }, []);
 
   async function decide(payment: PaymentRow, approve: boolean, reason?: string) {
-    // @ts-expect-error @supabase/ssr SupabaseAuthClient type mismatch — works at runtime
     const { data: { user } } = await supabase.auth.getUser();
 
     await supabase

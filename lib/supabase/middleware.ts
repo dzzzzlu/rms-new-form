@@ -41,7 +41,6 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // @ts-expect-error @supabase/ssr SupabaseAuthClient type mismatch — works at runtime
   const { data: { user } } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;

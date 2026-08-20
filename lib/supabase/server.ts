@@ -31,7 +31,6 @@ export function createClient() {
 /** Fetches the signed-in user's profile row (role, full_name, etc). Returns null if not signed in. */
 export async function getProfile() {
   const supabase = createClient();
-  // @ts-expect-error @supabase/ssr SupabaseAuthClient type mismatch — works at runtime
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 

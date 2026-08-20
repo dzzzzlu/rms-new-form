@@ -12,7 +12,6 @@ export default function ProfilePage() {
 
   useEffect(() => {
     (async () => {
-      // @ts-expect-error @supabase/ssr SupabaseAuthClient type mismatch — works at runtime
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();

@@ -8,7 +8,6 @@ export async function GET(request: Request) {
 
   if (token_hash && type) {
     const supabase = createClient();
-    // @ts-expect-error @supabase/ssr SupabaseAuthClient type mismatch — works at runtime
     const { error } = await supabase.auth.verifyOtp({ type, token_hash });
     if (!error) {
       redirect("/login?verified=1");

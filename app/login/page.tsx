@@ -31,7 +31,6 @@ function LoginForm() {
     setError(null);
     setLoading(true);
 
-    // @ts-expect-error @supabase/ssr SupabaseAuthClient type mismatch — works at runtime
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setError(
@@ -50,7 +49,6 @@ function LoginForm() {
       .single();
 
     if (profile && !profile.is_active) {
-      // @ts-expect-error @supabase/ssr SupabaseAuthClient type mismatch — works at runtime
       await supabase.auth.signOut();
       setError("This account has been archived. Please contact the administrator.");
       setLoading(false);
@@ -72,7 +70,6 @@ function LoginForm() {
 
   async function resendVerification() {
     if (!email) return setError("Enter your email above first.");
-    // @ts-expect-error @supabase/ssr SupabaseAuthClient type mismatch — works at runtime
     await supabase.auth.resend({ type: "signup", email });
     setResent(true);
   }
@@ -80,7 +77,6 @@ function LoginForm() {
   async function handleForgotPassword() {
     if (!email) return setError("Enter your email above first to reset your password.");
     setError(null);
-    // @ts-expect-error @supabase/ssr SupabaseAuthClient type mismatch — works at runtime
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/login`,
     });

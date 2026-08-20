@@ -71,7 +71,6 @@ export default function Sidebar({
   const supabase = createClient();
 
   async function handleLogout() {
-    // @ts-expect-error @supabase/ssr SupabaseAuthClient type mismatch — works at runtime
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
