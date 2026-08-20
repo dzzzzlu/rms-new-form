@@ -13,6 +13,13 @@ import {
   validateContactNumber,
 } from "@/lib/validation";
 
+const COURSES = [
+  "BS Computer Science",
+  "BS Accountancy",
+  "BS Business Administration",
+  "AB Education",
+];
+
 export default function RegisterPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -23,12 +30,14 @@ export default function RegisterPage() {
     contact_number: "",
     email: "",
     password: "",
+    confirm_password: "",
+    is_alumni: false,
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  function update(key: string, value: string) {
+  function update(key: string, value: string | boolean) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
@@ -42,10 +51,18 @@ export default function RegisterPage() {
     if (emailErr) { setError(emailErr); return; }
     const passErr = validatePassword(form.password);
     if (passErr) { setError(passErr); return; }
+    if (form.password !== form.confirm_password) {
+      setError("Passwords do not match.");
+      return;
+    }
     const snErr = validateStudentNumber(form.student_number);
     if (snErr) { setError(snErr); return; }
     const phoneErr = validateContactNumber(form.contact_number);
     if (phoneErr) { setError(phoneErr); return; }
+    if (!form.course) {
+      setError("Please select your course.");
+      return;
+    }
 
     setLoading(true);
 
@@ -59,6 +76,7 @@ export default function RegisterPage() {
           student_number: form.student_number,
           course: form.course,
           contact_number: form.contact_number,
+          is_alumni: form.is_alumni,
           role: "student",
         },
       },
@@ -122,8 +140,13 @@ export default function RegisterPage() {
             </div>
             <div>
               <label className="label">Course</label>
-              <input className="input" value={form.course}
-                onChange={(e) => update("course", e.target.value)} />
+              <select required className="input" value={form.course}
+                onChange={(e) => update("course", e.target.value)}>
+                <option value="">Select course…</option>
+                {COURSES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="label">Contact Number</label>
@@ -133,16 +156,34 @@ export default function RegisterPage() {
           </div>
 
           <div className="mb-4">
+            <label className="flex items-center gap-2 text-sm text-slate-600">
+              <input
+                type="checkbox"
+                checked={form.is_alumni}
+                onChange={(e) => update("is_alumni", e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-400"
+              />
+              I am an alumni (not currently enrolled)
+            </label>
+          </div>
+
+          <div className="mb-4">
             <label className="label">Email</label>
             <input type="email" required className="input" value={form.email}
               onChange={(e) => update("email", e.target.value)} />
           </div>
 
-          <div className="mb-6">
+          <div className="mb-4">
             <label className="label">Password</label>
             <input type="password" required minLength={8} className="input" value={form.password}
               onChange={(e) => update("password", e.target.value)} />
             <p className="mt-1 text-xs text-slate-400">At least 8 characters with 1 letter and 1 number.</p>
+          </div>
+
+          <div className="mb-6">
+            <label className="label">Confirm Password</label>
+            <input type="password" required minLength={8} className="input" value={form.confirm_password}
+              onChange={(e) => update("confirm_password", e.target.value)} />
           </div>
 
           <button type="submit" disabled={loading} className="btn-primary w-full">
