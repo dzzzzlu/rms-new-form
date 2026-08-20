@@ -4,7 +4,13 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { GraduationCap } from "lucide-react";
+import {
+  GraduationCap,
+  FileText,
+  Clock,
+  Shield,
+  ArrowRight,
+} from "lucide-react";
 
 export default function LoginPage() {
   return (
@@ -88,104 +94,159 @@ function LoginForm() {
     }
   }
 
+  const features = [
+    { icon: FileText, label: "Request documents online", desc: "No more long queues at the registrar" },
+    { icon: Clock, label: "Track in real-time", desc: "Know exactly where your request is" },
+    { icon: Shield, label: "Secure payments", desc: "Pay via GCash with proof upload" },
+  ];
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-900 via-brand-700 to-brand-500 px-4">
-      <div className="w-full max-w-md">
-        <div className="mb-6 text-center text-white">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
-            <GraduationCap className="h-7 w-7 text-white" />
+    <main className="flex min-h-screen">
+      {/* Left panel — branding */}
+      <div className="hidden w-1/2 flex-col justify-between bg-gradient-to-br from-brand-950 via-brand-900 to-brand-700 p-10 lg:flex">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+              <GraduationCap className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white">Regis Marie College</p>
+              <p className="text-[11px] text-brand-200">Document Request System</p>
+            </div>
           </div>
-          <h1 className="text-xl font-bold">Regis Marie College</h1>
-          <p className="text-sm text-brand-100">Academic Document Request System</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="rounded-2xl bg-white p-7 shadow-2xl">
-          <h2 className="mb-5 text-lg font-semibold text-slate-800">Sign in</h2>
-
-          {justVerified && (
-            <div className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-              Email verified — you can sign in now.
-            </div>
-          )}
-
-          {justRegistered && (
-            <div className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-              Account created successfully — you can now sign in.
-            </div>
-          )}
-
-          {error && (
-            <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-              {error}
-              {error.includes("verify your email") && (
-                <button
-                  type="button"
-                  onClick={resendVerification}
-                  className="ml-1 font-semibold underline"
-                >
-                  Resend verification email
-                </button>
-              )}
-            </div>
-          )}
-
-          {resent && (
-            <div className="mb-4 rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-700">
-              Verification email resent — check your inbox.
-            </div>
-          )}
-
-          {resetSent && (
-            <div className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-              Password reset email sent — check your inbox for the link.
-            </div>
-          )}
-
-          <div className="mb-4">
-            <label className="label">Email</label>
-            <input
-              type="email"
-              required
-              className="input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@regismarie.edu.ph"
-            />
+        <div className="space-y-8">
+          <div>
+            <h1 className="text-3xl font-bold leading-tight text-white lg:text-4xl">
+              Request academic documents
+              <br />
+              <span className="text-brand-300">hassle-free.</span>
+            </h1>
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-brand-200">
+              A digital platform for Regis Marie College students and alumni to request
+              transcripts, certificates, and other academic documents — anytime, anywhere.
+            </p>
           </div>
 
-          <div className="mb-2">
-            <label className="label">Password</label>
-            <input
-              type="password"
-              required
-              className="input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-            />
+          <div className="space-y-4">
+            {features.map((f) => (
+              <div key={f.label} className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10">
+                  <f.icon className="h-4 w-4 text-brand-200" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">{f.label}</p>
+                  <p className="text-xs text-brand-300">{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-[11px] text-brand-400">
+          &copy; {new Date().getFullYear()} Regis Marie College. All rights reserved.
+        </p>
+      </div>
+
+      {/* Right panel — form */}
+      <div className="flex w-full items-center justify-center bg-white px-6 py-10 lg:w-1/2">
+        <div className="w-full max-w-md">
+          <div className="mb-8">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 lg:hidden">
+              <GraduationCap className="h-6 w-6 text-brand-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-brand-900">Welcome back</h2>
+            <p className="mt-1 text-sm text-slate-500">Sign in to your account to continue</p>
           </div>
 
-          <div className="mb-6 text-right">
-            <button
-              type="button"
-              onClick={handleForgotPassword}
-              className="text-xs font-medium text-brand-600 hover:underline"
-            >
-              Forgot password?
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {justVerified && (
+              <div className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700">
+                Email verified — you can sign in now.
+              </div>
+            )}
+
+            {justRegistered && (
+              <div className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700">
+                Account created successfully — you can now sign in.
+              </div>
+            )}
+
+            {error && (
+              <div className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">
+                {error}
+                {error.includes("verify your email") && (
+                  <button
+                    type="button"
+                    onClick={resendVerification}
+                    className="ml-1 font-semibold underline"
+                  >
+                    Resend verification email
+                  </button>
+                )}
+              </div>
+            )}
+
+            {resent && (
+              <div className="rounded-lg bg-brand-50 px-3 py-2.5 text-sm text-brand-700">
+                Verification email resent — check your inbox.
+              </div>
+            )}
+
+            {resetSent && (
+              <div className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700">
+                Password reset email sent — check your inbox for the link.
+              </div>
+            )}
+
+            <div>
+              <label className="label">Email</label>
+              <input
+                type="email"
+                required
+                className="input"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@regismarie.edu.ph"
+              />
+            </div>
+
+            <div>
+              <label className="label">Password</label>
+              <input
+                type="password"
+                required
+                className="input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+              />
+            </div>
+
+            <div className="flex items-center justify-end">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-xs font-medium text-brand-600 hover:underline"
+              >
+                Forgot password?
+              </button>
+            </div>
+
+            <button type="submit" disabled={loading} className="btn-primary flex w-full items-center justify-center gap-2">
+              {loading ? "Signing in…" : "Sign In"}
+              {!loading && <ArrowRight className="h-4 w-4" />}
             </button>
-          </div>
+          </form>
 
-          <button type="submit" disabled={loading} className="btn-primary w-full">
-            {loading ? "Signing in…" : "Sign In"}
-          </button>
-
-          <p className="mt-5 text-center text-sm text-slate-500">
+          <p className="mt-6 text-center text-sm text-slate-500">
             No account yet?{" "}
             <Link href="/register" className="font-semibold text-brand-600 hover:underline">
-              Register
+              Register here
             </Link>
           </p>
-        </form>
+        </div>
       </div>
     </main>
   );
