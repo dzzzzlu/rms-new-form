@@ -4,8 +4,12 @@
 -- ============================================================
 
 -- 1) FIX RLS PRIVILEGE ESCALATION
--- Drop the overly-permissive policy
+-- Drop existing policies first
 drop policy if exists "requests_update_own_or_staff" on requests;
+drop policy if exists "requests_insert_own" on requests;
+drop policy if exists "requests_select_own_or_staff" on requests;
+drop policy if exists "requests_update_classlist_own" on requests;
+drop policy if exists "requests_update_staff" on requests;
 
 -- Students can only update class_list on their own requests (for Certificate of Enrollment)
 create policy "requests_update_classlist_own" on requests
