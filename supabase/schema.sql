@@ -23,6 +23,8 @@ create table profiles (
   course text,
   contact_number text,
   is_active boolean not null default true,
+  is_alumni boolean not null default false,
+  school_year text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -31,7 +33,7 @@ create table profiles (
 create function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, full_name, email, role, student_number, course, contact_number)
+  insert into public.profiles (id, full_name, email, role, student_number, course, contact_number, is_alumni, school_year)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'full_name', new.email),
@@ -39,7 +41,9 @@ begin
     'student',
     new.raw_user_meta_data->>'student_number',
     new.raw_user_meta_data->>'course',
-    new.raw_user_meta_data->>'contact_number'
+    new.raw_user_meta_data->>'contact_number',
+    coalesce((new.raw_user_meta_data->>'is_alumni')::boolean, false),
+    new.raw_user_meta_data->>'school_year'
   );
   return new;
 end;

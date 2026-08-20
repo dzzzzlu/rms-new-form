@@ -21,6 +21,8 @@ export interface Profile {
   course: string | null;
   contact_number: string | null;
   is_active: boolean;
+  is_alumni: boolean;
+  school_year: string | null;
   created_at: string;
   updated_at: string;
 }

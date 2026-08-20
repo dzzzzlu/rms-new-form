@@ -20,6 +20,20 @@ const COURSES = [
   "AB Education",
 ];
 
+const SCHOOL_YEARS = [
+  "2024-2025",
+  "2023-2024",
+  "2022-2023",
+  "2021-2022",
+  "2020-2021",
+  "2019-2020",
+  "2018-2019",
+  "2017-2018",
+  "2016-2017",
+  "2015-2016",
+  "Before 2015",
+];
+
 export default function RegisterPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -32,6 +46,7 @@ export default function RegisterPage() {
     password: "",
     confirm_password: "",
     is_alumni: false,
+    school_year: "",
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -62,6 +77,10 @@ export default function RegisterPage() {
       setError("Please select your course.");
       return;
     }
+    if (form.is_alumni && !form.school_year) {
+      setError("Please select your school year.");
+      return;
+    }
 
     setLoading(true);
 
@@ -76,6 +95,7 @@ export default function RegisterPage() {
           course: form.course,
           contact_number: form.contact_number,
           is_alumni: form.is_alumni,
+          school_year: form.is_alumni ? form.school_year : null,
           role: "student",
         },
       },
@@ -145,6 +165,19 @@ export default function RegisterPage() {
               I am an alumni (not currently enrolled)
             </label>
           </div>
+
+          {form.is_alumni && (
+            <div className="mb-4">
+              <label className="label">School Year</label>
+              <select required className="input" value={form.school_year}
+                onChange={(e) => update("school_year", e.target.value)}>
+                <option value="">Select school year…</option>
+                {SCHOOL_YEARS.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="mb-4">
             <label className="label">Email</label>
