@@ -16,9 +16,9 @@ import {
   Users,
   Upload,
   ClipboardCheck,
-  GraduationCap,
   LogOut,
 } from "lucide-react";
+import Image from "next/image";
 
 type Role = "student" | "registrar" | "admin" | "guidance";
 
@@ -95,7 +95,7 @@ export default function Sidebar({
         <div className="border-b border-white/10 px-5 py-5">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10">
-              <GraduationCap className="h-5 w-5 text-white" />
+              <Image src="/logo.png" alt="Regis Marie College" width={28} height={28} className="rounded-md" />
             </div>
             <div>
               <p className="text-sm font-bold leading-tight">Regis Marie RMS</p>

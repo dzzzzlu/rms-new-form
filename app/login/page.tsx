@@ -5,12 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
-  GraduationCap,
   FileText,
   Clock,
   Shield,
   ArrowRight,
 } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginPage() {
   return (
@@ -107,7 +107,7 @@ function LoginForm() {
         <div>
           <div className="flex items-center gap-2.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-              <GraduationCap className="h-5 w-5 text-white" />
+              <Image src="/logo.png" alt="Regis Marie College" width={32} height={32} className="rounded-lg" />
             </div>
             <div>
               <p className="text-sm font-bold text-white">Regis Marie College</p>
@@ -159,7 +159,7 @@ function LoginForm() {
           <div className="rounded-2xl border border-brand-100/60 bg-white p-8 shadow-xl shadow-brand-900/5">
             <div className="mb-6">
               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 lg:hidden">
-                <GraduationCap className="h-6 w-6 text-brand-600" />
+                <Image src="/logo.png" alt="Regis Marie College" width={40} height={40} className="rounded-lg" />
               </div>
               <h2 className="text-2xl font-bold text-brand-900">Welcome back</h2>
               <p className="mt-1 text-sm text-slate-500">Sign in to your account to continue</p>
