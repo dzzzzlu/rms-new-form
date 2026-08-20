@@ -150,15 +150,16 @@ function LoginForm() {
       </div>
 
       {/* Right panel — form */}
-      <div className="flex w-full items-center justify-center bg-white px-6 py-10 lg:w-1/2">
+      <div className="flex w-full items-center justify-center bg-gradient-to-br from-slate-50 to-brand-50/30 px-6 py-10 lg:w-1/2">
         <div className="w-full max-w-md">
-          <div className="mb-8">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 lg:hidden">
-              <GraduationCap className="h-6 w-6 text-brand-600" />
+          <div className="rounded-2xl border border-brand-100/60 bg-white p-8 shadow-xl shadow-brand-900/5">
+            <div className="mb-8">
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 lg:hidden">
+                <GraduationCap className="h-6 w-6 text-brand-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-brand-900">Welcome back</h2>
+              <p className="mt-1 text-sm text-slate-500">Sign in to your account to continue</p>
             </div>
-            <h2 className="text-2xl font-bold text-brand-900">Welcome back</h2>
-            <p className="mt-1 text-sm text-slate-500">Sign in to your account to continue</p>
-          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {justVerified && (
@@ -246,6 +247,7 @@ function LoginForm() {
               Register here
             </Link>
           </p>
+          </div>
         </div>
       </div>
     </main>
