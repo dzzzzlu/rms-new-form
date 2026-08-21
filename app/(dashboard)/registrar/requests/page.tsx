@@ -62,9 +62,9 @@ export default function ManageRequestsPage() {
 
     setUpdatingId(r.id);
     const { data: me } = await supabase.auth.getUser();
-    const { error } = await supabase.from("requests").update({ status }).eq("id", r.id);
-    if (error) {
-      toast.error("Failed to update status.");
+    const { data: updated, error } = await supabase.from("requests").update({ status }).eq("id", r.id).select();
+    if (error || !updated || updated.length === 0) {
+      toast.error("Failed to update status. Make sure your account has the correct role.");
       setUpdatingId(null);
       return;
     }
