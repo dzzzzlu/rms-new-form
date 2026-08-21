@@ -23,6 +23,7 @@ export async function POST(req: Request) {
       .single();
 
     if (!verification) {
+      console.error("No verification found for email:", email, "code:", code);
       return NextResponse.json({ error: "Invalid or expired code." }, { status: 400 });
     }
 

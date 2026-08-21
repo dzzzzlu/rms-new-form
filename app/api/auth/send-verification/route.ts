@@ -19,7 +19,11 @@ export async function POST(req: Request) {
     const code = generateCode();
     const expires_at = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-    await supabase.from("email_verifications").insert({ email, code, expires_at });
+    const { error: insertErr } = await supabase.from("email_verifications").insert({ email, code, expires_at });
+    if (insertErr) {
+      console.error("Insert error:", insertErr);
+    }
+    console.log("Saved code for", email, ":", code);
 
     await sendEmail({
       to: email,
