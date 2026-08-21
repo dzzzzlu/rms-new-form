@@ -29,7 +29,6 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resent, setResent] = useState(false);
-  const [resetSent, setResetSent] = useState(false);
   const justVerified = searchParams.get("verified") === "1";
   const justRegistered = searchParams.get("registered") === "1";
 
@@ -83,15 +82,7 @@ function LoginForm() {
 
   async function handleForgotPassword() {
     if (!email) return setError("Enter your email above first to reset your password.");
-    setError(null);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
-    });
-    if (error) {
-      setError(error.message);
-    } else {
-      setResetSent(true);
-    }
+    router.push(`/auth/forgot-password?email=${encodeURIComponent(email)}`);
   }
 
   const features = [
@@ -196,12 +187,6 @@ function LoginForm() {
               {resent && (
                 <div className="rounded-lg bg-brand-50 px-3 py-2.5 text-sm text-brand-700">
                   Verification email resent — check your inbox.
-                </div>
-              )}
-
-              {resetSent && (
-                <div className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700">
-                  Password reset email sent — check your inbox for the link.
                 </div>
               )}
 

@@ -1,35 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 
-export default function ResetPasswordPage() {
+export default function NewPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewPasswordForm />
+    </Suspense>
+  );
+}
+
+function NewPasswordForm() {
   const router = useRouter();
-  const supabase = createClient();
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email") ?? "";
+  const token = searchParams.get("token") ?? "";
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [ready, setReady] = useState(false);
   const [success, setSuccess] = useState(false);
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setReady(true);
-      }
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,23 +35,20 @@ export default function ResetPasswordPage() {
     if (password !== confirmPassword) return setError("Passwords do not match.");
 
     setLoading(true);
-    const { error: updateErr } = await supabase.auth.updateUser({ password });
+    const res = await fetch("/api/auth/set-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, token, password }),
+    });
+    const data = await res.json();
     setLoading(false);
 
-    if (updateErr) {
-      setError(updateErr.message);
-      return;
+    if (data.error) {
+      setError(data.error);
+    } else {
+      setSuccess(true);
+      setTimeout(() => router.push("/login"), 2500);
     }
-    setSuccess(true);
-    setTimeout(() => router.push("/login"), 2500);
-  }
-
-  if (!ready && !success) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="text-sm text-slate-500">Loading…</div>
-      </div>
-    );
   }
 
   return (
@@ -68,13 +59,15 @@ export default function ResetPasswordPage() {
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50">
               <Image src="/logo.png" alt="Regis Marie College" width={40} height={40} className="rounded-lg" />
             </div>
-            <h1 className="text-xl font-bold text-brand-900">Reset Password</h1>
-            <p className="mt-1 text-sm text-slate-500">Enter your new password below.</p>
+            <h1 className="text-xl font-bold text-brand-900">Set New Password</h1>
+            <p className="mt-1 text-sm text-slate-500">Choose a strong password for your account.</p>
           </div>
 
           {success ? (
-            <div className="rounded-lg bg-emerald-50 px-4 py-3 text-center text-sm text-emerald-700">
-              Password updated! Redirecting to login…
+            <div className="space-y-4">
+              <div className="rounded-lg bg-emerald-50 px-4 py-3 text-center text-sm text-emerald-700">
+                Password updated! Redirecting to sign in…
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -93,10 +86,11 @@ export default function ResetPasswordPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 8 characters"
                 />
+                <p className="mt-1 text-xs text-slate-400">At least 8 characters with 1 letter and 1 number.</p>
               </div>
 
               <div>
-                <label className="label">Confirm New Password</label>
+                <label className="label">Confirm Password</label>
                 <input
                   type="password"
                   required

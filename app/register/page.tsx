@@ -107,6 +107,7 @@ export default function RegisterPage() {
     }
 
     setLoading(false);
+    await supabase.auth.signOut();
     router.push("/login?registered=1");
   }
 
