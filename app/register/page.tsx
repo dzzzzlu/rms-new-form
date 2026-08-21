@@ -106,9 +106,14 @@ export default function RegisterPage() {
       return;
     }
 
+    await fetch("/api/auth/send-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: form.email }),
+    });
+
     setLoading(false);
-    await supabase.auth.signOut();
-    router.push("/login?registered=1");
+    router.push(`/auth/verify-email?email=${encodeURIComponent(form.email)}`);
   }
 
   return (
