@@ -53,7 +53,7 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
       <div className="card">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-xl font-bold text-brand-900">{request.documents?.name}</h2>
+            <h2 className="text-xl font-bold text-brand-900">{doc?.name}</h2>
             <p className="text-sm text-slate-500">{request.tracking_code}</p>
           </div>
           <span className={`badge text-sm ${STATUS_COLOR[request.status] ?? "bg-slate-100 text-slate-700"}`}>
@@ -75,7 +75,7 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
           </div>
           <div>
             <p className="text-slate-500">Fee per copy</p>
-            <p className="font-medium text-slate-800">₱{(request.documents?.fee ?? 0).toFixed(2)}</p>
+            <p className="font-medium text-slate-800">₱{(doc?.fee ?? 0).toFixed(2)}</p>
           </div>
           <div>
             <p className="text-slate-500">Total</p>
@@ -83,7 +83,7 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
           </div>
           <div>
             <p className="text-slate-500">Processing time</p>
-            <p className="font-medium text-slate-800">{request.documents?.processing_days} days</p>
+            <p className="font-medium text-slate-800">{doc?.processing_days} days</p>
           </div>
           <div>
             <p className="text-slate-500">Submitted</p>
