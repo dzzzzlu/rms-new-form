@@ -18,6 +18,16 @@ const STATUSES = [
 
 const RELEASE_STATUSES = ["Ready for Pickup", "Completed"];
 
+function nextStatuses(current: string): readonly string[] {
+  if (current === "Pending") return ["Payment Verification", "Processing", "Rejected"];
+  if (current === "Payment Verification") return ["Processing", "Rejected"];
+  if (current === "Processing") return ["Ready for Pickup", "Completed", "Rejected"];
+  if (current === "Ready for Pickup") return ["Completed", "Rejected"];
+  if (current === "Completed") return ["Completed"] as const;
+  if (current === "Rejected") return ["Rejected"] as const;
+  return STATUSES;
+}
+
 export default function ManageRequestsPage() {
   const supabase = createClient();
   const [requests, setRequests] = useState<RequestWithRelations[]>([]);
@@ -162,10 +172,10 @@ export default function ManageRequestsPage() {
                 <select
                   className="input w-auto"
                   value={r.status}
-                  disabled={updatingId === r.id}
+                  disabled={updatingId === r.id || (r.status as string) === "Completed" || (r.status as string) === "Rejected"}
                   onChange={(e) => updateStatus(r, e.target.value)}
                 >
-                  {STATUSES.map((s) => (
+                  {nextStatuses(r.status).map((s) => (
                     <option key={s}>{s}</option>
                   ))}
                 </select>
