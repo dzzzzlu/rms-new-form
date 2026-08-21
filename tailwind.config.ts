@@ -6,17 +6,17 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          950: "#051225", // near-black navy, deepest shade
-          900: "#0A1F44",
-          800: "#0D2E63",
-          700: "#0D47A1", // primary dark blue
-          600: "#1257B8",
-          500: "#1565C0", // primary blue
-          400: "#1E88E5",
-          300: "#42A5F5",
-          200: "#90CAF9",
-          100: "#BBDEFB",
-          50: "#EAF3FD",
+          950: "#020B1A",
+          900: "#041832",
+          800: "#062347",
+          700: "#0B3068",
+          600: "#10408A",
+          500: "#1A56B0",
+          400: "#3B74D0",
+          300: "#6B9DE0",
+          200: "#A3C1ED",
+          100: "#D1E1F6",
+          50: "#EDF3FB",
         },
       },
       boxShadow: {
