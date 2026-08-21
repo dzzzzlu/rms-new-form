@@ -53,6 +53,7 @@ export default async function StudentDashboard() {
               View All →
             </Link>
           )}
+        </div>
         {!typedRecent || typedRecent.length === 0 ? (
           <div className="flex flex-col items-center py-6 text-center">
             <FileText className="mb-2 h-8 w-8 text-slate-300" />
