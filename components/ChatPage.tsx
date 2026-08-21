@@ -163,13 +163,14 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
         <div className="border-b border-slate-200 p-3">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-brand-900">Messages</h2>
-            <button
-              onClick={() => setShowNewChat(!showNewChat)}
-              className="rounded-lg bg-brand-50 p-1.5 text-brand-600 hover:bg-brand-100"
-            >
-              <MessageSquare className="h-4 w-4" />
-            </button>
           </div>
+          <button
+            onClick={() => setShowNewChat(!showNewChat)}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            <MessageSquare className="h-4 w-4" />
+            {showNewChat ? "Cancel" : "New Chat"}
+          </button>
         </div>
 
         {showNewChat && (
@@ -181,7 +182,7 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
               onChange={(e) => setSearchQuery(e.target.value)}
               autoFocus
             />
-            <div className="mt-2 max-h-40 space-y-1 overflow-y-auto">
+            <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">
               {filteredProfiles.map((p) => (
                 <button
                   key={p.id}
@@ -192,10 +193,15 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
                     setSearchQuery("");
                     loadMessages(p.id);
                   }}
-                  className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-brand-50"
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-brand-50"
                 >
-                  <p className="font-medium text-slate-800">{p.full_name}</p>
-                  <p className="text-xs text-slate-400 capitalize">{p.role}</p>
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
+                    {p.full_name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">{p.full_name}</p>
+                    <p className="text-xs text-slate-400 capitalize">{p.role}</p>
+                  </div>
                 </button>
               ))}
               {filteredProfiles.length === 0 && (
