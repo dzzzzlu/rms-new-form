@@ -29,7 +29,7 @@ export default function ManageRequestsPage() {
     const { data, error } = await supabase
       .from("requests")
       .select(
-        "id, tracking_code, purpose, copies, status, guidance_status, clearance_status, class_list, created_at, documents(name), profiles(full_name, student_number)"
+        "id, tracking_code, purpose, copies, status, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), profiles(full_name, student_number)"
       )
       .order("created_at", { ascending: false });
     if (error) {
@@ -74,10 +74,22 @@ export default function ManageRequestsPage() {
 
   async function setClearance(id: number, status: "Approved" | "Rejected") {
     if (!window.confirm(`Mark clearance as ${status}?`)) return;
+    const r = requests.find((req) => req.id === id);
     const { error } = await supabase.from("requests").update({ clearance_status: status }).eq("id", id);
     if (error) {
       toast.error("Failed to update clearance.");
       return;
+    }
+    if (r?.user_id) {
+      fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: r.user_id,
+          subject: `Diploma Clearance — ${status}`,
+          html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0D47A1;">Regis Marie College — Document Request Update</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your Diploma request (<strong>${r.tracking_code}</strong>) clearance has been marked as <strong>${status}</strong>.</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
+        }),
+      });
     }
     toast.success(`Clearance marked as ${status}.`);
     load();

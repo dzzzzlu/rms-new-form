@@ -112,8 +112,13 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-900 via-brand-700 to-brand-500 px-4 py-10">
-      <div className="w-full max-w-lg">
+    <main className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-900 via-brand-700 to-brand-500 px-4 py-10">
+      {/* background watermark */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-center bg-no-repeat bg-contain opacity-[0.05]"
+        style={{ backgroundImage: "url('/wildd.jpg')" }}
+      />
+      <div className="relative z-10 w-full max-w-lg">
         <div className="mb-6 text-center text-white">
           <h1 className="text-xl font-bold">Create your Student / Alumni account</h1>
           <p className="text-sm text-brand-100">Regis Marie College Document Request System</p>

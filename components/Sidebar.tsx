@@ -16,6 +16,7 @@ import {
   Users,
   Upload,
   ClipboardCheck,
+  MessageSquare,
   LogOut,
 } from "lucide-react";
 import Image from "next/image";
@@ -28,12 +29,14 @@ const NAV: Record<Role, { label: string; href: string; icon: LucideIcon }[]> = {
     { label: "New Request", href: "/student/new-request", icon: PlusCircle },
     { label: "My History", href: "/student/history", icon: Clock },
     { label: "My Payments", href: "/student/payments", icon: CreditCard },
+    { label: "Messages", href: "/student/messages", icon: MessageSquare },
     { label: "My Profile", href: "/student/profile", icon: User },
   ],
   registrar: [
     { label: "Dashboard", href: "/registrar/dashboard", icon: LayoutDashboard },
     { label: "Manage Requests", href: "/registrar/requests", icon: FileText },
     { label: "Verify Payments", href: "/registrar/payments", icon: CreditCard },
+    { label: "Messages", href: "/registrar/messages", icon: MessageSquare },
     { label: "Reports", href: "/registrar/reports", icon: BarChart3 },
   ],
   admin: [
@@ -41,11 +44,13 @@ const NAV: Record<Role, { label: string; href: string; icon: LucideIcon }[]> = {
     { label: "Manage Users", href: "/admin/users", icon: Users },
     { label: "Import Past Records", href: "/admin/import-records", icon: Upload },
     { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+    { label: "Messages", href: "/admin/messages", icon: MessageSquare },
     { label: "Reports", href: "/admin/reports", icon: FileText },
   ],
   guidance: [
     { label: "Dashboard", href: "/guidance/dashboard", icon: LayoutDashboard },
     { label: "Good Moral Approvals", href: "/guidance/approvals", icon: ClipboardCheck },
+    { label: "Messages", href: "/guidance/messages", icon: MessageSquare },
   ],
 };
 

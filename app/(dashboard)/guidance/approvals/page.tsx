@@ -12,6 +12,7 @@ type GoodMoralRequest = {
   purpose: string | null;
   guidance_status: ApprovalStatus | null;
   created_at: string;
+  user_id: string;
   documents: { name: string } | null;
   profiles: { full_name: string; student_number: string | null; course: string | null } | null;
 };
@@ -27,7 +28,7 @@ export default function GuidanceApprovalsPage() {
     const { data } = await supabase
       .from("requests")
       .select(
-        "id, tracking_code, purpose, guidance_status, created_at, documents!inner(name), profiles(full_name, student_number, course)"
+        "id, tracking_code, purpose, guidance_status, created_at, user_id, documents!inner(name), profiles(full_name, student_number, course)"
       )
       .eq("documents.name", "Good Moral Certificate")
       .order("created_at", { ascending: false });
@@ -42,6 +43,7 @@ export default function GuidanceApprovalsPage() {
   async function decide(id: number, status: "Approved" | "Rejected") {
     if (!window.confirm(`${status} this Good Moral Certificate request?`)) return;
     setDecidingId(id);
+    const r = requests.find((req) => req.id === id);
     const { error } = await supabase.from("requests").update({ guidance_status: status }).eq("id", id);
     if (error) {
       toast.error("Failed to update approval.");
@@ -52,6 +54,22 @@ export default function GuidanceApprovalsPage() {
       request_id: id,
       status: `Guidance ${status}`,
     });
+
+    if (r?.user_id) {
+      const msg = status === "Approved"
+        ? "Your Good Moral Certificate has been approved by the Guidance Department and is now being processed."
+        : "Your Good Moral Certificate request was not approved by the Guidance Department. Please contact the guidance office for details.";
+      fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: r.user_id,
+          subject: `Good Moral Certificate — ${status}`,
+          html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0D47A1;">Regis Marie College — Document Request Update</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your Good Moral Certificate request (<strong>${r.tracking_code}</strong>) has been <strong>${status.toLowerCase()}</strong> by the Guidance Department.</p><p>${msg}</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
+        }),
+      });
+    }
+
     toast.success(`Request ${status.toLowerCase()}.`);
     setDecidingId(null);
     load();

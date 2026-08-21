@@ -142,6 +142,11 @@ function LoginForm() {
 
       {/* Right panel — form */}
       <div className="relative flex w-full items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-brand-50/40 px-6 py-10 lg:w-1/2">
+        {/* background watermark */}
+        <div
+          className="pointer-events-none absolute inset-0 bg-center bg-no-repeat bg-contain opacity-[0.04]"
+          style={{ backgroundImage: "url('/wildd.jpg')" }}
+        />
         {/* decorative circles */}
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand-100/30" />
         <div className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-brand-200/20" />
