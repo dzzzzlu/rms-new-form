@@ -17,6 +17,8 @@ export async function sendEmail({
   subject: string;
   html: string;
 }) {
+  console.log("GMAIL_USER:", process.env.GMAIL_USER);
+  console.log("GMAIL_APP_PASSWORD length:", process.env.GMAIL_APP_PASSWORD?.length);
   const info = await transporter.sendMail({
     from: `"Regis Marie College" <${process.env.GMAIL_USER}>`,
     to,
