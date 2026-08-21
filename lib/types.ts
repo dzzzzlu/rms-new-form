@@ -65,6 +65,7 @@ export interface Payment {
   proof_image: string;
   amount: number;
   status: PaymentStatus;
+  payment_method: "gcash" | "walk_in";
   verified_by: string | null;
   verified_at: string | null;
   rejection_reason: string | null;

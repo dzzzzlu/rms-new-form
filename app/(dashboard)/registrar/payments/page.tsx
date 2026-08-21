@@ -24,7 +24,7 @@ export default function VerifyPaymentsPage() {
     setLoading(true);
     const { data } = await supabase
       .from("payments")
-      .select("id, gcash_reference, proof_image, amount, status, request_id, requests(tracking_code, user_id, profiles(full_name))")
+      .select("id, gcash_reference, proof_image, amount, status, payment_method, request_id, requests(tracking_code, user_id, profiles(full_name))")
       .eq("status", "Pending")
       .order("created_at", { ascending: false });
     setPayments((data as unknown as PaymentRow[]) ?? []);
@@ -104,7 +104,7 @@ export default function VerifyPaymentsPage() {
     <div className="space-y-4">
       <div className="card">
         <h2 className="text-xl font-bold text-brand-900">Verify Payments</h2>
-        <p className="text-sm text-slate-500">Review GCash proof and approve or reject each payment.</p>
+        <p className="text-sm text-slate-500">Review GCash proof or walk-in payments and approve or reject each.</p>
       </div>
 
       {loading ? (
@@ -133,14 +133,22 @@ export default function VerifyPaymentsPage() {
               <div>
                 <p className="font-semibold text-brand-900">{p.requests?.profiles?.full_name}</p>
                 <p className="text-xs text-slate-500">{p.requests?.tracking_code}</p>
+                <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                  p.payment_method === "walk_in"
+                    ? "bg-amber-50 text-amber-700"
+                    : "bg-blue-50 text-blue-700"
+                }`}>
+                  {p.payment_method === "walk_in" ? "Walk-in" : "GCash"}
+                </span>
               </div>
-              {previews[p.id] && (
+              {p.payment_method === "gcash" && previews[p.id] && (
                 <a href={previews[p.id]} target="_blank" rel="noopener noreferrer">
                   <img src={previews[p.id]} alt="Payment proof" className="w-full rounded-lg border hover:opacity-90" />
                 </a>
               )}
               <p className="text-sm text-slate-600">
-                Ref: <span className="font-medium">{p.gcash_reference}</span> · ₱{p.amount}
+                {p.payment_method === "gcash" && <>Ref: <span className="font-medium">{p.gcash_reference}</span> · </>}
+                ₱{p.amount}
               </p>
 
               {rejectingId === p.id ? (

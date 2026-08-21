@@ -32,7 +32,7 @@ export default function StudentPaymentsPage() {
 
       const { data } = await supabase
         .from("payments")
-        .select("id, gcash_reference, proof_image, amount, status, rejection_reason, created_at, requests(tracking_code, status, documents(name))")
+        .select("id, gcash_reference, proof_image, amount, status, payment_method, rejection_reason, created_at, requests(tracking_code, status, documents(name))")
         .eq("requests.user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -55,7 +55,7 @@ export default function StudentPaymentsPage() {
     <div className="space-y-4">
       <div className="card">
         <h2 className="text-xl font-bold text-brand-900">My Payments</h2>
-        <p className="text-sm text-slate-500">Track the status of your GCash payment submissions.</p>
+        <p className="text-sm text-slate-500">Track the status of your payment submissions.</p>
       </div>
 
       {loading ? (
@@ -82,19 +82,32 @@ export default function StudentPaymentsPage() {
                   <p className="font-semibold text-brand-900">{p.requests?.documents?.name}</p>
                   <p className="text-xs text-slate-500">{p.requests?.tracking_code}</p>
                 </div>
-                <span className={`badge ${STATUS_COLOR[p.status] ?? "bg-slate-100 text-slate-700"}`}>
-                  {p.status}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    p.payment_method === "walk_in"
+                      ? "bg-amber-50 text-amber-700"
+                      : "bg-blue-50 text-blue-700"
+                  }`}>
+                    {p.payment_method === "walk_in" ? "Walk-in" : "GCash"}
+                  </span>
+                  <span className={`badge ${STATUS_COLOR[p.status] ?? "bg-slate-100 text-slate-700"}`}>
+                    {p.status}
+                  </span>
+                </div>
               </div>
 
-              {previews[p.id] && (
+              {p.payment_method === "gcash" && previews[p.id] && (
                 <a href={previews[p.id]} target="_blank" rel="noopener noreferrer">
                   <img src={previews[p.id]} alt="Payment proof" className="w-full max-w-xs rounded-lg border hover:opacity-90" />
                 </a>
               )}
 
               <div className="text-sm text-slate-600">
-                <p>Ref: <span className="font-medium">{p.gcash_reference}</span> · ₱{p.amount}</p>
+                {p.payment_method === "gcash" ? (
+                  <p>Ref: <span className="font-medium">{p.gcash_reference}</span> · ₱{p.amount}</p>
+                ) : (
+                  <p>Amount: <span className="font-medium">₱{p.amount}</span> — Pay at registrar's office</p>
+                )}
                 <p>Submitted: {new Date(p.created_at).toLocaleDateString()}</p>
               </div>
 
