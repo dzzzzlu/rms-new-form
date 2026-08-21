@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RequestWithRelations } from "@/lib/types";
+import { sendNotification } from "@/lib/notify";
 import { Inbox } from "lucide-react";
 import { toast } from "sonner";
 
@@ -60,6 +61,7 @@ export default function ManageRequestsPage() {
     }
 
     setUpdatingId(r.id);
+    const { data: me } = await supabase.auth.getUser();
     const { error } = await supabase.from("requests").update({ status }).eq("id", r.id);
     if (error) {
       toast.error("Failed to update status.");
@@ -67,6 +69,17 @@ export default function ManageRequestsPage() {
       return;
     }
     await supabase.from("status_history").insert({ request_id: r.id, status });
+
+    if (r.user_id && me?.user?.id) {
+      sendNotification({
+        senderId: me.user.id,
+        receiverId: r.user_id,
+        message: `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) status has been updated to "${status}".`,
+        subject: `Request Status Update — ${status}`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Document Request Update</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your <strong>${r.documents?.name ?? "document"}</strong> request (<strong>${r.tracking_code}</strong>) has been updated to <strong>${status}</strong>.</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
+      });
+    }
+
     toast.success(`Status changed to "${status}".`);
     setUpdatingId(null);
     load();
@@ -75,20 +88,19 @@ export default function ManageRequestsPage() {
   async function setClearance(id: number, status: "Approved" | "Rejected") {
     if (!window.confirm(`Mark clearance as ${status}?`)) return;
     const r = requests.find((req) => req.id === id);
+    const { data: me } = await supabase.auth.getUser();
     const { error } = await supabase.from("requests").update({ clearance_status: status }).eq("id", id);
     if (error) {
       toast.error("Failed to update clearance.");
       return;
     }
-    if (r?.user_id) {
-      fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: r.user_id,
-          subject: `Diploma Clearance — ${status}`,
-          html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0D47A1;">Regis Marie College — Document Request Update</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your Diploma request (<strong>${r.tracking_code}</strong>) clearance has been marked as <strong>${status}</strong>.</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
-        }),
+    if (r?.user_id && me?.user?.id) {
+      sendNotification({
+        senderId: me.user.id,
+        receiverId: r.user_id,
+        message: `Your Diploma request (${r.tracking_code}) clearance has been ${status.toLowerCase()}.`,
+        subject: `Diploma Clearance — ${status}`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Document Request Update</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your Diploma request (<strong>${r.tracking_code}</strong>) clearance has been marked as <strong>${status}</strong>.</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
       });
     }
     toast.success(`Clearance marked as ${status}.`);

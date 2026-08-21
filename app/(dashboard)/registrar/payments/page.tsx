@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Payment } from "@/lib/types";
+import { sendNotification } from "@/lib/notify";
 import { CreditCard } from "lucide-react";
 import { toast } from "sonner";
 
 type PaymentRow = Payment & {
-  requests: { tracking_code: string; profiles: { full_name: string } | null } | null;
+  requests: { tracking_code: string; user_id: string; profiles: { full_name: string } | null } | null;
 };
 
 export default function VerifyPaymentsPage() {
@@ -23,7 +24,7 @@ export default function VerifyPaymentsPage() {
     setLoading(true);
     const { data } = await supabase
       .from("payments")
-      .select("id, gcash_reference, proof_image, amount, status, request_id, requests(tracking_code, profiles(full_name))")
+      .select("id, gcash_reference, proof_image, amount, status, request_id, requests(tracking_code, user_id, profiles(full_name))")
       .eq("status", "Pending")
       .order("created_at", { ascending: false });
     setPayments((data as unknown as PaymentRow[]) ?? []);
@@ -78,6 +79,19 @@ export default function VerifyPaymentsPage() {
       status: approve ? "Processing" : "Rejected",
       remarks: reason ?? null,
     });
+
+    if (user?.id && payment.requests?.user_id) {
+      const msg = approve
+        ? `Your payment for request (${payment.requests.tracking_code}) has been verified. Your request is now being processed.`
+        : `Your payment for request (${payment.requests.tracking_code}) has been rejected.${reason ? ` Reason: ${reason}` : ""}`;
+      sendNotification({
+        senderId: user.id,
+        receiverId: payment.requests.user_id,
+        message: msg,
+        subject: `Payment ${approve ? "Verified" : "Rejected"} — ${payment.requests.tracking_code}`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Payment ${approve ? "Verified" : "Rejected"}</h2><p>Hi ${payment.requests.profiles?.full_name ?? "there"},</p><p>${msg}</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
+      });
+    }
 
     toast.success(approve ? "Payment verified." : "Payment rejected.");
     setDecidingId(null);

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { ApprovalStatus } from "@/lib/types";
+import { sendNotification } from "@/lib/notify";
 import { ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,6 +45,7 @@ export default function GuidanceApprovalsPage() {
     if (!window.confirm(`${status} this Good Moral Certificate request?`)) return;
     setDecidingId(id);
     const r = requests.find((req) => req.id === id);
+    const { data: me } = await supabase.auth.getUser();
     const { error } = await supabase.from("requests").update({ guidance_status: status }).eq("id", id);
     if (error) {
       toast.error("Failed to update approval.");
@@ -55,18 +57,16 @@ export default function GuidanceApprovalsPage() {
       status: `Guidance ${status}`,
     });
 
-    if (r?.user_id) {
+    if (r?.user_id && me?.user?.id) {
       const msg = status === "Approved"
         ? "Your Good Moral Certificate has been approved by the Guidance Department and is now being processed."
         : "Your Good Moral Certificate request was not approved by the Guidance Department. Please contact the guidance office for details.";
-      fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: r.user_id,
-          subject: `Good Moral Certificate — ${status}`,
-          html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0D47A1;">Regis Marie College — Document Request Update</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your Good Moral Certificate request (<strong>${r.tracking_code}</strong>) has been <strong>${status.toLowerCase()}</strong> by the Guidance Department.</p><p>${msg}</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
-        }),
+      sendNotification({
+        senderId: me.user.id,
+        receiverId: r.user_id,
+        message: msg,
+        subject: `Good Moral Certificate — ${status}`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Document Request Update</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your Good Moral Certificate request (<strong>${r.tracking_code}</strong>) has been <strong>${status.toLowerCase()}</strong> by the Guidance Department.</p><p>${msg}</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
       });
     }
 

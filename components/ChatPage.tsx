@@ -19,6 +19,7 @@ type Message = {
 type Conversation = {
   partnerId: string;
   partnerName: string;
+  partnerRole: string;
   lastMessage: string;
   lastTime: string;
   unread: number;
@@ -35,6 +36,8 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
   const [showNewChat, setShowNewChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const isStudent = role === "student";
 
   useEffect(() => {
     loadConversations();
@@ -75,6 +78,7 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
         convMap.set(partnerId, {
           partnerId,
           partnerName: "",
+          partnerRole: "",
           lastMessage: msg.message,
           lastTime: msg.created_at,
           unread,
@@ -88,10 +92,13 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
     if (partnerIds.length > 0) {
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, full_name")
+        .select("id, full_name, role")
         .in("id", partnerIds);
-      for (const p of (profiles ?? []) as { id: string; full_name: string }[]) {
-        if (convMap.has(p.id)) convMap.get(p.id)!.partnerName = p.full_name;
+      for (const p of (profiles ?? []) as Profile[]) {
+        if (convMap.has(p.id)) {
+          convMap.get(p.id)!.partnerName = p.full_name;
+          convMap.get(p.id)!.partnerRole = p.role;
+        }
       }
     }
 
@@ -150,11 +157,19 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
   }
 
   const filteredProfiles = allProfiles.filter((p) => {
-    if (role === "student") {
-      return ["registrar", "admin", "guidance"].includes(p.role);
+    if (isStudent) {
+      return ["registrar", "guidance"].includes(p.role);
     }
     return true;
   }).filter((p) => p.full_name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  const canSend = isStudent
+    ? messages.length > 0 && messages.some((m) => m.sender_id !== userId)
+    : true;
+
+  const hasConversationWithStaff = isStudent && activePartner && allProfiles.find(
+    (p) => p.id === activePartner && ["registrar", "guidance", "admin"].includes(p.role)
+  );
 
   return (
     <div className="card flex h-[calc(100vh-10rem)] overflow-hidden p-0">
@@ -164,13 +179,18 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-brand-900">Messages</h2>
           </div>
-          <button
-            onClick={() => setShowNewChat(!showNewChat)}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
-          >
-            <MessageSquare className="h-4 w-4" />
-            {showNewChat ? "Cancel" : "New Chat"}
-          </button>
+          {!isStudent && (
+            <button
+              onClick={() => setShowNewChat(!showNewChat)}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
+            >
+              <MessageSquare className="h-4 w-4" />
+              {showNewChat ? "Cancel" : "New Chat"}
+            </button>
+          )}
+          {isStudent && (
+            <p className="mt-2 text-xs text-slate-400">Staff will message you first.</p>
+          )}
         </div>
 
         {showNewChat && (
@@ -216,7 +236,7 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
             <div className="flex flex-col items-center justify-center py-10 text-center">
               <MessageSquare className="mb-2 h-8 w-8 text-slate-300" />
               <p className="text-xs text-slate-400">No conversations yet.</p>
-              <p className="text-xs text-slate-400">Click the button above to start one.</p>
+              {!isStudent && <p className="text-xs text-slate-400">Click "New Chat" to start one.</p>}
             </div>
           ) : (
             conversations.map((c) => (
@@ -284,38 +304,48 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
                 </div>
               );
             })}
+            {isStudent && hasConversationWithStaff && messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <MessageSquare className="mb-2 h-8 w-8 text-slate-300" />
+                <p className="text-sm text-slate-500">Waiting for staff to message you first.</p>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
           <div className="border-t border-slate-200 px-4 py-3">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                sendMessage();
-              }}
-              className="flex items-center gap-2"
-            >
-              <input
-                className="input flex-1"
-                placeholder="Type a message…"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-              />
-              <button
-                type="submit"
-                disabled={!newMessage.trim()}
-                className="rounded-xl bg-brand-600 p-2.5 text-white transition-colors hover:bg-brand-700 disabled:opacity-40"
+            {canSend ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  sendMessage();
+                }}
+                className="flex items-center gap-2"
               >
-                <Send className="h-4 w-4" />
-              </button>
-            </form>
+                <input
+                  className="input flex-1"
+                  placeholder="Type a message…"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  disabled={!newMessage.trim()}
+                  className="rounded-xl bg-brand-600 p-2.5 text-white transition-colors hover:bg-brand-700 disabled:opacity-40"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </form>
+            ) : (
+              <p className="text-center text-sm text-slate-400">You can reply once staff messages you.</p>
+            )}
           </div>
         </div>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center text-center">
           <MessageSquare className="mb-3 h-12 w-12 text-slate-200" />
           <p className="text-sm font-medium text-slate-500">Select a conversation</p>
-          <p className="text-xs text-slate-400">or start a new one from the sidebar</p>
+          {!isStudent && <p className="text-xs text-slate-400">or start a new one from the sidebar</p>}
         </div>
       )}
     </div>
