@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     const FROM_EMAIL = process.env.FROM_EMAIL ?? "Regis Marie College <onboarding@resend.dev>";
 
     if (RESEND_API_KEY) {
-      await fetch("https://api.resend.com/emails", {
+      const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${RESEND_API_KEY}`,
@@ -44,6 +44,11 @@ export async function POST(req: Request) {
           `,
         }),
       });
+      if (!res.ok) {
+        const err = await res.text();
+        console.error("Resend error:", err);
+        return NextResponse.json({ error: `Email send failed: ${err}` }, { status: 500 });
+      }
     }
 
     return NextResponse.json({ message: "Verification code sent." });
