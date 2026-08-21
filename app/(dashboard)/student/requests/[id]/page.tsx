@@ -22,7 +22,7 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
 
   const { data: request } = await supabase
     .from("requests")
-    .select("id, tracking_code, purpose, copies, status, guidance_status, clearance_status, class_list, remarks, created_at, updated_at, documents(name, fee, processing_days)")
+    .select("id, tracking_code, purpose, copies, status, guidance_status, clearance_status, class_list, remarks, created_at, updated_at, documents!inner(name, fee, processing_days)")
     .eq("id", requestId)
     .eq("user_id", profile.id)
     .single();
@@ -41,7 +41,8 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
     .eq("request_id", requestId)
     .single();
 
-  const totalFee = (request.documents?.fee ?? 0) * request.copies;
+  const doc = Array.isArray(request.documents) ? request.documents[0] : request.documents;
+  const totalFee = (doc?.fee ?? 0) * request.copies;
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
