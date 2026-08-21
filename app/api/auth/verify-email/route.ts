@@ -28,12 +28,16 @@ export async function POST(req: Request) {
 
     await supabase.from("email_verifications").update({ used: true }).eq("id", verification.id);
 
-    const { data: authUser } = await supabase.auth.admin.getUserByEmail(email);
-    if (!authUser?.user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .single();
+    if (!profile) {
       return NextResponse.json({ error: "User not found." }, { status: 400 });
     }
 
-    const { error: updateErr } = await supabase.auth.admin.updateUserById(authUser.user.id, {
+    const { error: updateErr } = await supabase.auth.admin.updateUserById(profile.id, {
       email_confirm: true,
     });
     if (updateErr) {

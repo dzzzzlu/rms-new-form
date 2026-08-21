@@ -30,12 +30,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid or expired session." }, { status: 400 });
     }
 
-    const { data: authUser } = await supabase.auth.admin.getUserByEmail(email);
-    if (!authUser?.user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .single();
+    if (!profile) {
       return NextResponse.json({ error: "User not found." }, { status: 400 });
     }
 
-    const { error: updateErr } = await supabase.auth.admin.updateUserById(authUser.user.id, { password });
+    const { error: updateErr } = await supabase.auth.admin.updateUserById(profile.id, { password });
     if (updateErr) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
     }
