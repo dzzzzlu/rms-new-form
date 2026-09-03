@@ -6,6 +6,7 @@ import type { RequestWithRelations } from "@/lib/types";
 import { sendNotification } from "@/lib/notify";
 import { Inbox } from "lucide-react";
 import { toast } from "sonner";
+import PrintDocument from "@/components/PrintDocument";
 
 const STATUSES = [
   "Pending",
@@ -40,7 +41,7 @@ export default function ManageRequestsPage() {
     const { data, error } = await supabase
       .from("requests")
       .select(
-        "id, tracking_code, purpose, copies, status, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), profiles(full_name, student_number)"
+        "id, tracking_code, purpose, copies, status, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), profiles(full_name, student_number, course)"
       )
       .order("created_at", { ascending: false });
     if (error) {
@@ -224,6 +225,22 @@ export default function ManageRequestsPage() {
                 <p className="whitespace-pre-line text-xs text-slate-600">
                   Class list: {r.class_list}
                 </p>
+              )}
+
+              {(r.status === "Completed" || r.status === "Ready for Pickup") && (
+                <PrintDocument
+                  doc={{
+                    docName: r.documents?.name ?? "Document",
+                    trackingCode: r.tracking_code,
+                    fullName: r.profiles?.full_name ?? "Student",
+                    studentNumber: r.profiles?.student_number ?? null,
+                    course: r.profiles?.course ?? null,
+                    copies: r.copies,
+                    status: r.status,
+                    classList: r.class_list,
+                    issuedAt: r.created_at,
+                  }}
+                />
               )}
             </div>
           ))}

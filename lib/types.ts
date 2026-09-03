@@ -54,7 +54,7 @@ export interface Request {
 
 export interface RequestWithRelations extends Request {
   documents: { name: string } | null;
-  profiles: { full_name: string; student_number: string | null } | null;
+  profiles: { full_name: string; student_number: string | null; course: string | null } | null;
   user_id: string;
 }
 

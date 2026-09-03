@@ -52,3 +52,31 @@ body {
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
 }
+
+.print-hidden {
+  @apply print:hidden;
+}
+
+.print-area {
+  @apply print:shadow-none print:border-0;
+}
+
+@page {
+  size: A4;
+  margin: 20mm;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

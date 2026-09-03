@@ -17,6 +17,7 @@ import {
   Upload,
   ClipboardCheck,
   MessageSquare,
+  UserCheck,
   LogOut,
 } from "lucide-react";
 import Image from "next/image";
@@ -41,6 +42,7 @@ const NAV: Record<Role, { label: string; href: string; icon: LucideIcon }[]> = {
   ],
   admin: [
     { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+    { label: "Pending Approvals", href: "/admin/approvals", icon: UserCheck },
     { label: "Manage Users", href: "/admin/users", icon: Users },
     { label: "Import Past Records", href: "/admin/import-records", icon: Upload },
     { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },

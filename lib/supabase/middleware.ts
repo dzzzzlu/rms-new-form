@@ -45,11 +45,20 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isAuthPage = path.startsWith("/login") || path.startsWith("/register");
+  const isPendingPage = path.startsWith("/student/pending");
 
-  const matchedRole = Object.keys(routeRole).find((r) => path.startsWith(`/${r}`));
-  const isProtected = !!matchedRole;
+  const matchedRole = Object.keys(routeRole).find(
+    (r) => path.startsWith(`/${r}`) && path !== `/student/pending`
+  );
+  const isProtected = !!matchedRole && !isPendingPage;
 
   if (!user && isProtected) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  if (!user && isPendingPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -62,9 +71,15 @@ export async function updateSession(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    if (!profile || !profile.is_active) {
+    if (!profile) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
+      return NextResponse.redirect(url);
+    }
+
+    if (!profile.is_active) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/student/pending";
       return NextResponse.redirect(url);
     }
 
@@ -76,14 +91,31 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  if (user && isPendingPage) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, is_active")
+      .eq("id", user.id)
+      .single();
+    if (profile?.is_active) {
+      const url = request.nextUrl.clone();
+      url.pathname = roleHome[profile.role] ?? "/student/dashboard";
+      return NextResponse.redirect(url);
+    }
+  }
+
   if (user && isAuthPage) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, is_active")
       .eq("id", user.id)
       .single();
     const url = request.nextUrl.clone();
-    url.pathname = roleHome[profile?.role ?? "student"];
+    if (profile && !profile.is_active) {
+      url.pathname = "/student/pending";
+    } else {
+      url.pathname = roleHome[profile?.role ?? "student"];
+    }
     return NextResponse.redirect(url);
   }
 

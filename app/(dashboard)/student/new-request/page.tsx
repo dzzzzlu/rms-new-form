@@ -18,7 +18,7 @@ export default function NewRequestPage() {
   const supabase = createClient();
   const router = useRouter();
   const [docs, setDocs] = useState<Doc[]>([]);
-  const [documentId, setDocumentId] = useState<number | "">("");
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [purpose, setPurpose] = useState("");
   const [copies, setCopies] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState<"gcash" | "walk_in">("gcash");
@@ -36,19 +36,32 @@ export default function NewRequestPage() {
       .then(({ data }) => setDocs(data ?? []));
   }, []);
 
-  const selectedDoc = docs.find((d) => d.id === documentId);
-  const amount = selectedDoc ? selectedDoc.fee * copies : 0;
+  const selectedDocs = docs.filter((d) => selectedIds.includes(d.id));
+  const hasCertificateEnrollment = selectedDocs.some((d) => d.name === "Certificate of Enrollment");
+  const hasGoodMoral = selectedDocs.some((d) => d.name === "Good Moral Certificate");
+  const hasDiploma = selectedDocs.some((d) => d.name === "Diploma");
+  const amount = selectedDocs.reduce((sum, d) => sum + d.fee * copies, 0);
+
+  function toggleDoc(id: number) {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    if (!documentId) return setError("Please choose a document type.");
+    if (selectedIds.length === 0) return setError("Please select at least one document.");
 
     const purposeErr = validatePurpose(purpose);
     if (purposeErr) return setError(purposeErr);
     const copiesErr = validateCopies(copies);
     if (copiesErr) return setError(copiesErr);
+
+    if (hasCertificateEnrollment && !classList.trim()) {
+      return setError("Please enter your class list for the Certificate of Enrollment.");
+    }
 
     if (paymentMethod === "gcash") {
       if (!proofFile) return setError("Please attach your GCash payment proof.");
@@ -60,65 +73,71 @@ export default function NewRequestPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return setError("Not signed in.");
 
-    const { data: request, error: reqErr } = await supabase
-      .from("requests")
-      .insert({
-        tracking_code: trackingCode(),
-        user_id: user.id,
-        document_id: documentId,
-        purpose: sanitize(purpose),
-        copies,
-        status: paymentMethod === "walk_in" ? "Pending" : "Pending",
-        class_list: selectedDoc?.name === "Certificate of Enrollment" ? sanitize(classList) : null,
-        guidance_status: selectedDoc?.name === "Good Moral Certificate" ? "Pending" : null,
-        clearance_status: selectedDoc?.name === "Diploma" ? "Pending" : null,
-      })
-      .select()
-      .single();
+    const createdIds: number[] = [];
+    let proofPath = "";
 
-    if (reqErr || !request) {
-      setLoading(false);
-      return setError(reqErr?.message ?? "Could not create request.");
-    }
-
-    if (paymentMethod === "gcash") {
-      const path = `${user.id}/${request.id}-${proofFile!.name}`;
+    if (paymentMethod === "gcash" && proofFile) {
+      proofPath = `${user.id}/${Date.now()}-${proofFile.name}`;
       const { error: uploadErr } = await supabase.storage
         .from("payment-proofs")
-        .upload(path, proofFile!);
+        .upload(proofPath, proofFile);
 
       if (uploadErr) {
         setLoading(false);
         return setError(uploadErr.message);
       }
+    }
 
-      const { error: payErr } = await supabase.from("payments").insert({
-        request_id: request.id,
-        gcash_reference: gcashRef,
-        proof_image: path,
-        amount,
-        status: "Pending",
-        payment_method: "gcash",
-      });
+    for (const doc of selectedDocs) {
+      const { data: request, error: reqErr } = await supabase
+        .from("requests")
+        .insert({
+          tracking_code: trackingCode(),
+          user_id: user.id,
+          document_id: doc.id,
+          purpose: sanitize(purpose),
+          copies,
+          status: "Pending",
+          class_list: doc.name === "Certificate of Enrollment" ? sanitize(classList) : null,
+          guidance_status: doc.name === "Good Moral Certificate" ? "Pending" : null,
+          clearance_status: doc.name === "Diploma" ? "Pending" : null,
+        })
+        .select("id")
+        .single();
 
-      if (payErr) {
+      if (reqErr || !request) {
         setLoading(false);
-        return setError(payErr.message);
+        return setError(reqErr?.message ?? "Could not create request.");
       }
 
-      await supabase
-        .from("requests")
-        .update({ status: "Payment Verification" })
-        .eq("id", request.id);
-    } else {
-      await supabase.from("payments").insert({
-        request_id: request.id,
-        gcash_reference: "",
-        proof_image: "",
-        amount,
-        status: "Verified",
-        payment_method: "walk_in",
-      });
+      createdIds.push(request.id);
+
+      if (paymentMethod === "gcash") {
+        const { error: payErr } = await supabase.from("payments").insert({
+          request_id: request.id,
+          gcash_reference: gcashRef,
+          proof_image: proofPath,
+          amount: doc.fee * copies,
+          status: "Pending",
+          payment_method: "gcash",
+        });
+
+        if (payErr) {
+          setLoading(false);
+          return setError(payErr.message);
+        }
+
+        await supabase.from("requests").update({ status: "Payment Verification" }).eq("id", request.id);
+      } else {
+        await supabase.from("payments").insert({
+          request_id: request.id,
+          gcash_reference: "",
+          proof_image: "",
+          amount: doc.fee * copies,
+          status: "Verified",
+          payment_method: "walk_in",
+        });
+      }
     }
 
     router.push("/student/history");
@@ -138,19 +157,41 @@ export default function NewRequestPage() {
         )}
 
         <div>
-          <label className="label">Document Type</label>
-          <select
-            className="input"
-            value={documentId}
-            onChange={(e) => setDocumentId(Number(e.target.value))}
-          >
-            <option value="">Select a document…</option>
-            {docs.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name} — ₱{d.fee.toFixed(2)} ({d.processing_days} days)
-              </option>
-            ))}
-          </select>
+          <label className="label">Document Type (select one or more)</label>
+          <div className="space-y-2">
+            {docs.map((d) => {
+              const checked = selectedIds.includes(d.id);
+              return (
+                <label
+                  key={d.id}
+                  className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg border p-3 transition ${
+                    checked
+                      ? "border-brand-600 bg-brand-50"
+                      : "border-slate-200 bg-white hover:border-brand-300"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleDoc(d.id)}
+                      className="h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-400"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-slate-800">{d.name}</p>
+                      {d.description && (
+                        <p className="text-xs text-slate-500">{d.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right text-xs text-slate-500">
+                    <p className="font-semibold text-slate-700">₱{d.fee.toFixed(2)}</p>
+                    <p>{d.processing_days} days</p>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
         </div>
 
         <div>
@@ -169,7 +210,7 @@ export default function NewRequestPage() {
           />
         </div>
 
-        {selectedDoc?.name === "Certificate of Enrollment" && (
+        {hasCertificateEnrollment && (
           <div>
             <label className="label">Class List (subjects currently enrolled)</label>
             <textarea
@@ -177,6 +218,7 @@ export default function NewRequestPage() {
               placeholder={"e.g.\nCS 301 - Data Structures\nCS 302 - Database Systems"}
               value={classList}
               onChange={(e) => setClassList(e.target.value)}
+              required
             />
             <p className="mt-1 text-xs text-slate-400">
               This will be printed on your Certificate of Enrollment.
@@ -184,16 +226,35 @@ export default function NewRequestPage() {
           </div>
         )}
 
-        {selectedDoc?.name === "Diploma" && (
+        {hasDiploma && (
           <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
             Diploma release requires clearance from the registrar's office. Your request will show as
             "Pending Clearance" until that's completed — this may add processing time.
           </div>
         )}
 
-        {selectedDoc && (
+        {hasGoodMoral && (
+          <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Good Moral Certificate requests must be approved by the Guidance Department before the
+            registrar can release them.
+          </div>
+        )}
+
+        {selectedDocs.length > 0 && (
           <div className="rounded-lg bg-brand-50 px-4 py-3 text-sm text-brand-800">
-            Total amount to pay: <span className="font-bold">₱{amount.toFixed(2)}</span>
+            <p>
+              {selectedDocs.length} document{selectedDocs.length > 1 ? "s" : ""} selected:
+            </p>
+            <ul className="mt-1 list-inside list-disc text-xs">
+              {selectedDocs.map((d) => (
+                <li key={d.id}>
+                  {d.name} — ₱{(d.fee * copies).toFixed(2)} × {copies} cop{copies > 1 ? "ies" : "y"}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 font-bold">
+              Total amount to pay: ₱{amount.toFixed(2)}
+            </p>
           </div>
         )}
 

@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import PrintDocument from "@/components/PrintDocument";
 
 const STATUS_COLOR: Record<string, string> = {
   Pending: "bg-slate-100 text-slate-700",
@@ -44,6 +45,12 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
   const doc = Array.isArray(request.documents) ? request.documents[0] : request.documents;
   const totalFee = (doc?.fee ?? 0) * request.copies;
 
+  const schoolProfile = {
+    full_name: profile.full_name,
+    student_number: profile.student_number,
+    course: profile.course,
+  };
+
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <Link href="/student/history" className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline">
@@ -56,9 +63,26 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
             <h2 className="text-xl font-bold text-brand-900">{doc?.name}</h2>
             <p className="text-sm text-slate-500">{request.tracking_code}</p>
           </div>
-          <span className={`badge text-sm ${STATUS_COLOR[request.status] ?? "bg-slate-100 text-slate-700"}`}>
-            {request.status}
-          </span>
+          <div className="flex flex-col items-end gap-2">
+            <span className={`badge text-sm ${STATUS_COLOR[request.status] ?? "bg-slate-100 text-slate-700"}`}>
+              {request.status}
+            </span>
+            {(request.status === "Completed" || request.status === "Ready for Pickup") && (
+              <PrintDocument
+                doc={{
+                  docName: doc?.name ?? "Document",
+                  trackingCode: request.tracking_code,
+                  fullName: schoolProfile.full_name,
+                  studentNumber: schoolProfile.student_number,
+                  course: schoolProfile.course,
+                  copies: request.copies,
+                  status: request.status,
+                  classList: request.class_list,
+                  issuedAt: request.updated_at,
+                }}
+              />
+            )}
+          </div>
         </div>
       </div>
 
