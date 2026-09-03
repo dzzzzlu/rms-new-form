@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { sendEmail } from "@/lib/email";
+import { sendEmailJS } from "@/lib/emailjs";
+import { emailVerification } from "@/lib/email-templates";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,19 +24,11 @@ export async function POST(req: Request) {
     if (insertErr) {
       console.error("Insert error:", insertErr);
     }
-    console.log("Saved code for", email, ":", code);
 
-    await sendEmail({
+    await sendEmailJS({
       to: email,
       subject: "Verify Your Email — Regis Marie College",
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;text-align:center;">
-          <h2 style="color:#0D47A1;">Welcome to Regis Marie College RMS</h2>
-          <p>Use the following 6-digit code to verify your email address:</p>
-          <p style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#0D47A1;margin:24px 0;">${code}</p>
-          <p style="color:#64748b;font-size:12px;">This code expires in 10 minutes. If you didn't create an account, ignore this email.</p>
-        </div>
-      `,
+      html: emailVerification(code),
     });
 
     return NextResponse.json({ message: "Verification code sent." });
