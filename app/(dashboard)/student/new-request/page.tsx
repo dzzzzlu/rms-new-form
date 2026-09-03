@@ -6,6 +6,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { createClient } from "@/lib/supabase/client";
 import { PAYMENT_CONFIG } from "@/lib/payment-config";
 import { validatePurpose, validateCopies, sanitize } from "@/lib/validation";
+import SampleTemplates from "@/components/SampleTemplates";
 
 type Doc = { id: number; name: string; description: string | null; fee: number; processing_days: number };
 
@@ -182,6 +183,7 @@ export default function NewRequestPage() {
                       {d.description && (
                         <p className="text-xs text-slate-500">{d.description}</p>
                       )}
+                      <SampleTemplates docName={d.name} docDescription={d.description} />
                     </div>
                   </div>
                   <div className="text-right text-xs text-slate-500">
