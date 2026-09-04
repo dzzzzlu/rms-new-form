@@ -62,10 +62,6 @@ export default function ManageRequestsPage() {
         toast.error("This Good Moral request hasn't been approved by the Guidance Department yet.");
         return;
       }
-      if (r.documents?.name === "Diploma" && r.clearance_status !== "Approved") {
-        toast.error("This Diploma request hasn't cleared all offices yet.");
-        return;
-      }
     }
 
     if (!window.confirm(`Change "${r.documents?.name}" (${r.tracking_code}) to "${status}"?`)) {
@@ -94,28 +90,6 @@ export default function ManageRequestsPage() {
 
     toast.success(`Status changed to "${status}".`);
     setUpdatingId(null);
-    load();
-  }
-
-  async function setClearance(id: number, status: "Approved" | "Rejected") {
-    if (!window.confirm(`Mark clearance as ${status}?`)) return;
-    const r = requests.find((req) => req.id === id);
-    const { data: me } = await supabase.auth.getUser();
-    const { error } = await supabase.from("requests").update({ clearance_status: status }).eq("id", id);
-    if (error) {
-      toast.error("Failed to update clearance.");
-      return;
-    }
-    if (r?.user_id && me?.user?.id) {
-      sendNotification({
-        senderId: me.user.id,
-        receiverId: r.user_id,
-        message: `Your Diploma request (${r.tracking_code}) clearance has been ${status.toLowerCase()}.`,
-        subject: `Diploma Clearance — ${status}`,
-        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Document Request Update</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your Diploma request (<strong>${r.tracking_code}</strong>) clearance has been marked as <strong>${status}</strong>.</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
-      });
-    }
-    toast.success(`Clearance marked as ${status}.`);
     load();
   }
 
@@ -207,28 +181,6 @@ export default function ManageRequestsPage() {
                     {r.guidance_status ?? "Pending"}
                   </span>
                 </p>
-              )}
-
-              {r.documents?.name === "Diploma" && (
-                <div className="flex items-center gap-2 text-xs">
-                  <span>Clearance:</span>
-                  <span
-                    className={`badge ${
-                      r.clearance_status === "Approved"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : r.clearance_status === "Rejected"
-                        ? "bg-red-50 text-red-700"
-                        : "bg-amber-50 text-amber-700"
-                    }`}
-                  >
-                    {r.clearance_status ?? "Pending"}
-                  </span>
-                  {r.clearance_status !== "Approved" && (
-                    <button onClick={() => setClearance(r.id, "Approved")} className="btn-outline !px-2 !py-1">
-                      Mark Cleared
-                    </button>
-                  )}
-                </div>
               )}
 
               {r.documents?.name === "Certificate of Enrollment" && r.class_list && (

@@ -79,21 +79,12 @@ export default function SampleTemplates({ docName, docDescription }: SampleTempl
             </p>
           </div>
         );
-      case "2nd Copy of Copy of Grades":
+      case "2nd Copy of Grades":
         return (
           <div className="space-y-1 text-center">
-            <p className="text-sm italic text-slate-500">2nd Copy of Copy of Grades</p>
+            <p className="text-sm italic text-slate-500">2nd Copy of Grades</p>
             <p className="text-sm text-slate-700">
               A second copy of the student&apos;s grades document.
-            </p>
-          </div>
-        );
-      case "Diploma":
-        return (
-          <div className="space-y-1 text-center">
-            <p className="text-sm italic text-slate-500">Diploma</p>
-            <p className="text-sm text-slate-700">
-              Official diploma certifying completion of requirements for the degree, subject to office clearance.
             </p>
           </div>
         );

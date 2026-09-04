@@ -66,14 +66,12 @@ create table documents (
 );
 
 insert into documents (name, description, fee, processing_days) values
-('Transcript of Records', 'Official record of academic performance', 500.00, 5),
+('Transcript of Records', 'Official record of academic performance (500 per page)', 500.00, 5),
 ('Certificate of Enrollment', 'Proof of current enrollment', 300.00, 2),
-('2nd Copy of Copy of Grades', 'Second copy of grades', 150.00, 2),
+('2nd Copy of Grades', 'Second copy of grades', 150.00, 2),
 ('Certified True Copy - Copy of Grades', 'Certified true copy of grades', 300.00, 2),
 ('Certified True Copy - COR', 'Certified true copy of Certificate of Registration', 300.00, 2),
-('Good Moral Certificate', 'Certificate of good moral character', 500.00, 2),
-('Diploma', 'Original or certified copy of diploma', 350.00, 7),
-('Other Registrar Document', 'Any other document handled by the registrar', 150.00, 3);
+('Good Moral Certificate', 'Certificate of good moral character', 500.00, 2);
 
 -- ------------------------------------------------------------
 -- Requests

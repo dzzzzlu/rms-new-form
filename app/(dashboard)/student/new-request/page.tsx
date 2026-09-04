@@ -40,7 +40,6 @@ export default function NewRequestPage() {
   const selectedDocs = docs.filter((d) => selectedIds.includes(d.id));
   const hasCertificateEnrollment = selectedDocs.some((d) => d.name === "Certificate of Enrollment");
   const hasGoodMoral = selectedDocs.some((d) => d.name === "Good Moral Certificate");
-  const hasDiploma = selectedDocs.some((d) => d.name === "Diploma");
   const amount = selectedDocs.reduce((sum, d) => sum + d.fee * copies, 0);
 
   function toggleDoc(id: number) {
@@ -101,7 +100,6 @@ export default function NewRequestPage() {
           status: "Pending",
           class_list: doc.name === "Certificate of Enrollment" ? sanitize(classList) : null,
           guidance_status: doc.name === "Good Moral Certificate" ? "Pending" : null,
-          clearance_status: doc.name === "Diploma" ? "Pending" : null,
         })
         .select("id")
         .single();
@@ -225,13 +223,6 @@ export default function NewRequestPage() {
             <p className="mt-1 text-xs text-slate-400">
               This will be printed on your Certificate of Enrollment.
             </p>
-          </div>
-        )}
-
-        {hasDiploma && (
-          <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Diploma release requires clearance from the registrar's office. Your request will show as
-            "Pending Clearance" until that's completed — this may add processing time.
           </div>
         )}
 
