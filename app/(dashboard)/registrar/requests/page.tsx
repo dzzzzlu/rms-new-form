@@ -33,6 +33,7 @@ export default function ManageRequestsPage() {
   const supabase = createClient();
   const [requests, setRequests] = useState<RequestWithRelations[]>([]);
   const [filter, setFilter] = useState<string>("All");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
 
@@ -118,17 +119,26 @@ export default function ManageRequestsPage() {
     load();
   }
 
-  const visible = filter === "All" ? requests : requests.filter((r) => r.status === filter);
+  const visible = requests.filter((r) => {
+    const matchStatus = filter === "All" || r.status === filter;
+    const q = search.toLowerCase();
+    const matchSearch =
+      !q ||
+      r.profiles?.full_name?.toLowerCase().includes(q) ||
+      r.profiles?.student_number?.toLowerCase().includes(q) ||
+      r.tracking_code?.toLowerCase().includes(q);
+    return matchStatus && matchSearch;
+  });
 
   return (
     <div className="space-y-4">
-      <div className="card flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold text-brand-900">Manage Requests</h2>
-          <p className="text-sm text-slate-500">
-            {requests.length} total · {filter !== "All" ? visible.length + " shown" : "all"}
-          </p>
-        </div>
+      <div className="card flex flex-wrap items-center gap-3">
+        <input
+          className="input flex-1"
+          placeholder="Search by name, student number, or tracking code…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
         <select className="input w-auto" value={filter} onChange={(e) => setFilter(e.target.value)}>
           <option>All</option>
           {STATUSES.map((s) => (
