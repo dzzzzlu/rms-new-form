@@ -67,21 +67,19 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
             <span className={`badge text-sm ${STATUS_COLOR[request.status] ?? "bg-slate-100 text-slate-700"}`}>
               {request.status}
             </span>
-            {(request.status === "Completed" || request.status === "Ready for Pickup") && (
-              <PrintDocument
-                doc={{
-                  docName: doc?.name ?? "Document",
-                  trackingCode: request.tracking_code,
-                  fullName: schoolProfile.full_name,
-                  studentNumber: schoolProfile.student_number,
-                  course: schoolProfile.course,
-                  copies: request.copies,
-                  status: request.status,
-                  classList: request.class_list,
-                  issuedAt: request.updated_at,
-                }}
-              />
-            )}
+            <PrintDocument
+              doc={{
+                docName: doc?.name ?? "Document",
+                trackingCode: request.tracking_code,
+                fullName: schoolProfile.full_name,
+                studentNumber: schoolProfile.student_number,
+                course: schoolProfile.course,
+                copies: request.copies,
+                status: request.status,
+                classList: request.class_list,
+                issuedAt: request.updated_at,
+              }}
+            />
           </div>
         </div>
       </div>

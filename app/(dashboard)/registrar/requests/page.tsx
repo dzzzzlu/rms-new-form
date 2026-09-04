@@ -237,21 +237,19 @@ export default function ManageRequestsPage() {
                 </p>
               )}
 
-              {(r.status === "Completed" || r.status === "Ready for Pickup") && (
-                <PrintDocument
-                  doc={{
-                    docName: r.documents?.name ?? "Document",
-                    trackingCode: r.tracking_code,
-                    fullName: r.profiles?.full_name ?? "Student",
-                    studentNumber: r.profiles?.student_number ?? null,
-                    course: r.profiles?.course ?? null,
-                    copies: r.copies,
-                    status: r.status,
-                    classList: r.class_list,
-                    issuedAt: r.created_at,
-                  }}
-                />
-              )}
+              <PrintDocument
+                doc={{
+                  docName: r.documents?.name ?? "Document",
+                  trackingCode: r.tracking_code,
+                  fullName: r.profiles?.full_name ?? "Student",
+                  studentNumber: r.profiles?.student_number ?? null,
+                  course: r.profiles?.course ?? null,
+                  copies: r.copies,
+                  status: r.status,
+                  classList: r.class_list,
+                  issuedAt: r.created_at,
+                }}
+              />
             </div>
           ))}
         </div>

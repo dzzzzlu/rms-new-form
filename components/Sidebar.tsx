@@ -106,7 +106,7 @@ export default function Sidebar({
               <Image src="/logo.png" alt="Regis Marie College" width={28} height={28} className="rounded-md" />
             </div>
             <div>
-              <p className="text-sm font-bold leading-tight">Regis Marie RMS</p>
+              <p className="text-sm font-bold leading-tight">Regis Marie College</p>
               <p className="text-[11px] text-brand-200">Document Request System</p>
             </div>
           </div>
