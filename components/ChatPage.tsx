@@ -140,6 +140,19 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
     });
 
     if (!error) {
+      try {
+        const { data: me } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", userId)
+          .single();
+        await supabase.from("notifications").insert({
+          user_id: activePartner,
+          message: `New message from ${me?.full_name ?? "a user"}.`,
+        });
+      } catch (notifErr) {
+        console.error("Notification insert error:", notifErr);
+      }
       setMessages((prev) => [
         ...prev,
         {
