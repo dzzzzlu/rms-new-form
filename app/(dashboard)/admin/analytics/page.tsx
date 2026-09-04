@@ -20,6 +20,20 @@ type Row = {
   profiles: { full_name: string; course: string | null } | null;
 };
 
+type PaymentRow = {
+  id: number;
+  amount: number;
+  status: string;
+  created_at: string;
+  verified_at: string | null;
+  payment_method: string | null;
+  requests: {
+    tracking_code: string | null;
+    documents: { name: string } | null;
+    profiles: { full_name: string } | null;
+  } | null;
+};
+
 const CATEGORIES = [
   { value: "all", label: "All fields" },
   { value: "status", label: "Status" },
@@ -42,16 +56,25 @@ const CHART_COLORS = ["#1565C0", "#0D47A1", "#42A5F5", "#1E88E5", "#1257B8", "#9
 export default function AnalyticsPage() {
   const supabase = createClient();
   const [rows, setRows] = useState<Row[]>([]);
+  const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]["value"]>("all");
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("requests")
-        .select("status, created_at, copies, documents(name, fee), profiles(full_name, course)");
-      setRows((data as unknown as Row[]) ?? []);
+      const [{ data: reqData }, { data: payData }] = await Promise.all([
+        supabase
+          .from("requests")
+          .select("status, created_at, copies, documents(name, fee), profiles(full_name, course)"),
+        supabase
+          .from("payments")
+          .select(
+            "id, amount, status, created_at, verified_at, payment_method, requests(tracking_code, documents(name), profiles(full_name))"
+          ),
+      ]);
+      setRows((reqData as unknown as Row[]) ?? []);
+      setPayments((payData as unknown as PaymentRow[]) ?? []);
       setLoading(false);
     })();
   }, []);
@@ -111,6 +134,50 @@ export default function AnalyticsPage() {
 
   const totalCopies = useMemo(() => filtered.reduce((s, r) => s + (r.copies || 0), 0), [filtered]);
 
+  const fmtMoney = (n: number) =>
+    `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const verifiedPayments = useMemo(
+    () => payments.filter((p) => p.status === "Verified"),
+    [payments]
+  );
+
+  const totalRevenue = useMemo(
+    () => verifiedPayments.reduce((s, p) => s + (p.amount || 0), 0),
+    [verifiedPayments]
+  );
+
+  const dailyRevenue = useMemo(() => {
+    const map: Record<string, { total: number; count: number; sortKey: string }> = {};
+    for (const p of verifiedPayments) {
+      const d = new Date(p.verified_at ?? p.created_at);
+      const dateKey = d.toLocaleDateString("en-PH");
+      const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+        d.getDate()
+      ).padStart(2, "0")}`;
+      if (!map[dateKey]) map[dateKey] = { total: 0, count: 0, sortKey };
+      map[dateKey].total += p.amount || 0;
+      map[dateKey].count++;
+    }
+    return Object.entries(map)
+      .map(([date, { total, count, sortKey }]) => ({ date, total, count, sortKey }))
+      .sort((a, b) => b.sortKey.localeCompare(a.sortKey));
+  }, [verifiedPayments]);
+
+  const revenueMonthData = useMemo(() => {
+    const map: Record<string, { total: number; sortKey: string }> = {};
+    for (const p of verifiedPayments) {
+      const d = new Date(p.verified_at ?? p.created_at);
+      const key = d.toLocaleString("default", { month: "short", year: "2-digit" });
+      const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (!map[key]) map[key] = { total: 0, sortKey };
+      map[key].total += p.amount || 0;
+    }
+    return Object.entries(map)
+      .map(([name, { total, sortKey }]) => ({ name, total, sortKey }))
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+  }, [verifiedPayments]);
+
   return (
     <div className="space-y-4">
       <div className="card">
@@ -144,8 +211,8 @@ export default function AnalyticsPage() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="card animate-pulse">
               <div className="mb-4 h-4 w-24 rounded bg-slate-200" />
               <div className="space-y-3">
@@ -158,7 +225,7 @@ export default function AnalyticsPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="card text-center">
               <p className="text-sm text-slate-500">Total Requests</p>
               <p className="text-3xl font-bold text-brand-700">{filtered.length}</p>
@@ -170,6 +237,12 @@ export default function AnalyticsPage() {
             <div className="card text-center">
               <p className="text-sm text-slate-500">Total Copies</p>
               <p className="text-3xl font-bold text-brand-700">{totalCopies}</p>
+            </div>
+            <div className="card text-center">
+              <p className="text-sm text-slate-500">Total Revenue</p>
+              <p className="text-3xl font-bold text-emerald-600" title="From verified payments">
+                {fmtMoney(totalRevenue)}
+              </p>
             </div>
           </div>
 
@@ -253,6 +326,73 @@ export default function AnalyticsPage() {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="card">
+              <h3 className="mb-4 font-semibold text-brand-900">Revenue by Month</h3>
+              {revenueMonthData.length === 0 ? (
+                <p className="text-sm text-slate-400">No verified payments yet.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={revenueMonthData} margin={{ left: 0, right: 16 }}>
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip
+                      cursor={{ fill: "#EAF3FD" }}
+                      contentStyle={{ borderRadius: 8, border: "1px solid #BBDEFB", fontSize: 12 }}
+                      formatter={(value) => [fmtMoney(Number(value)), "Revenue"]}
+                    />
+                    <Bar dataKey="total" fill="#059669" radius={[6, 6, 0, 0]} barSize={32}>
+                      {revenueMonthData.map((_, i) => (
+                        <Cell key={i} fill={["#047857", "#059669", "#10B981", "#34D399", "#6EE7B7"][i % 5]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            <div className="card">
+              <h3 className="mb-4 font-semibold text-brand-900">Revenue by Day</h3>
+              {dailyRevenue.length === 0 ? (
+                <p className="text-sm text-slate-400">No verified payments yet.</p>
+              ) : (
+                <div className="max-h-80 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-white">
+                      <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
+                        <th className="py-2 pr-4">Date</th>
+                        <th className="py-2 pr-4">Payments</th>
+                        <th className="py-2 text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dailyRevenue.map((d) => (
+                        <tr key={d.date} className="border-b border-slate-100">
+                          <td className="py-2 pr-4 font-medium text-slate-700">{d.date}</td>
+                          <td className="py-2 pr-4 text-slate-500">{d.count}</td>
+                          <td className="py-2 text-right font-semibold text-emerald-700">
+                            {fmtMoney(d.total)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-slate-200">
+                        <td className="py-2 pr-4 font-semibold text-brand-900">Total</td>
+                        <td className="py-2 pr-4 font-medium text-slate-600">
+                          {dailyRevenue.reduce((s, d) => s + d.count, 0)}
+                        </td>
+                        <td className="py-2 text-right font-bold text-brand-900">
+                          {fmtMoney(totalRevenue)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
               )}
             </div>
           </div>
