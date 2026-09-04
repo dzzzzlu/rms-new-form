@@ -26,6 +26,15 @@ export async function sendNotification({
     message,
   });
 
+  try {
+    await supabase.from("notifications").insert({
+      user_id: receiverId,
+      message,
+    });
+  } catch (err) {
+    console.error("In-app notification insert error:", err);
+  }
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("email")
