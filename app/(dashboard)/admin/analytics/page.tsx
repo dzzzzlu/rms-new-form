@@ -12,7 +12,6 @@ import {
   Cell,
   PieChart,
   Pie,
-  Legend,
 } from "recharts";
 
 type Row = {
@@ -460,7 +459,6 @@ export default function AnalyticsPage() {
                       contentStyle={{ borderRadius: 8, border: "1px solid #BBDEFB", fontSize: 12 }}
                       formatter={(value) => [String(value), "Requests"]}
                     />
-                    <Legend />
                   </PieChart>
                 </ResponsiveContainer>
               )}
