@@ -67,22 +67,14 @@ body {
 }
 
 @media print {
-  body * {
-    visibility: hidden;
-  }
   .no-print {
     display: none !important;
   }
-  .print-only,
-  .print-only * {
-    visibility: visible;
+  body > *:not(.print-only) {
+    display: none !important;
   }
   .print-only {
     display: block !important;
-    position: fixed !important;
-    top: 0;
-    left: 0;
-    width: 100%;
   }
   body {
     background: #fff !important;
