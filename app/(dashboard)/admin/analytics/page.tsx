@@ -147,9 +147,51 @@ export default function AnalyticsPage() {
     [verifiedPayments]
   );
 
+  const today = new Date();
+  const [revGranularity, setRevGranularity] = useState<"day" | "month" | "year">("month");
+  const [revYear, setRevYear] = useState<string>(String(today.getFullYear()));
+  const [revMonth, setRevMonth] = useState<string>(
+    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`
+  );
+  const [revDay, setRevDay] = useState<string>(
+    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(
+      today.getDate()
+    ).padStart(2, "0")}`
+  );
+
+  const availYears = useMemo(() => {
+    const s = new Set<number>();
+    for (const p of verifiedPayments) s.add(new Date(p.verified_at ?? p.created_at).getFullYear());
+    if (s.size === 0) s.add(today.getFullYear());
+    return [...s].sort((a, b) => b - a).map(String);
+  }, [verifiedPayments]);
+
+  const paymentsInPeriod = useMemo(
+    () =>
+      verifiedPayments.filter((p) => {
+        const d = new Date(p.verified_at ?? p.created_at);
+        const dayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+          d.getDate()
+        ).padStart(2, "0")}`;
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        if (revGranularity === "day") return dayKey === revDay;
+        if (revGranularity === "month") return monthKey === revMonth;
+        return String(d.getFullYear()) === revYear;
+      }),
+    [verifiedPayments, revGranularity, revDay, revMonth, revYear]
+  );
+
+  const sectionTotal = useMemo(
+    () => paymentsInPeriod.reduce((s, p) => s + (p.amount || 0), 0),
+    [paymentsInPeriod]
+  );
+
+  const displayYear =
+    revGranularity === "day" ? revDay.slice(0, 4) : revGranularity === "month" ? revMonth.slice(0, 4) : revYear;
+
   const dailyRevenue = useMemo(() => {
     const map: Record<string, { total: number; count: number; sortKey: string }> = {};
-    for (const p of verifiedPayments) {
+    for (const p of paymentsInPeriod) {
       const d = new Date(p.verified_at ?? p.created_at);
       const dateKey = d.toLocaleDateString("en-PH");
       const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
@@ -162,12 +204,13 @@ export default function AnalyticsPage() {
     return Object.entries(map)
       .map(([date, { total, count, sortKey }]) => ({ date, total, count, sortKey }))
       .sort((a, b) => b.sortKey.localeCompare(a.sortKey));
-  }, [verifiedPayments]);
+  }, [paymentsInPeriod]);
 
   const revenueMonthData = useMemo(() => {
     const map: Record<string, { total: number; sortKey: string }> = {};
     for (const p of verifiedPayments) {
       const d = new Date(p.verified_at ?? p.created_at);
+      if (String(d.getFullYear()) !== displayYear) continue;
       const key = d.toLocaleString("default", { month: "short", year: "2-digit" });
       const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       if (!map[key]) map[key] = { total: 0, sortKey };
@@ -176,7 +219,7 @@ export default function AnalyticsPage() {
     return Object.entries(map)
       .map(([name, { total, sortKey }]) => ({ name, total, sortKey }))
       .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-  }, [verifiedPayments]);
+  }, [verifiedPayments, displayYear]);
 
   return (
     <div className="space-y-4">
@@ -330,11 +373,63 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
+          <div className="card flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-brand-900">Revenue</h3>
+              <p className="text-sm text-slate-500">
+                {paymentsInPeriod.length > 0 ? (
+                  <>
+                    <span className="font-semibold text-emerald-700">{fmtMoney(sectionTotal)}</span> ·{" "}
+                    {paymentsInPeriod.length} payment{paymentsInPeriod.length !== 1 ? "s" : ""} in this period
+                  </>
+                ) : (
+                  "No verified payments in this period."
+                )}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                className="input w-auto"
+                value={revGranularity}
+                onChange={(e) => setRevGranularity(e.target.value as typeof revGranularity)}
+              >
+                <option value="day">By Day</option>
+                <option value="month">By Month</option>
+                <option value="year">By Year</option>
+              </select>
+              {revGranularity === "day" && (
+                <input
+                  type="date"
+                  className="input w-auto"
+                  value={revDay}
+                  onChange={(e) => setRevDay(e.target.value)}
+                />
+              )}
+              {revGranularity === "month" && (
+                <input
+                  type="month"
+                  className="input w-auto"
+                  value={revMonth}
+                  onChange={(e) => setRevMonth(e.target.value)}
+                />
+              )}
+              {revGranularity === "year" && (
+                <select className="input w-auto" value={revYear} onChange={(e) => setRevYear(e.target.value)}>
+                  {availYears.map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="card">
-              <h3 className="mb-4 font-semibold text-brand-900">Revenue by Month</h3>
+              <h3 className="mb-4 font-semibold text-brand-900">Revenue by Month ({displayYear})</h3>
               {revenueMonthData.length === 0 ? (
-                <p className="text-sm text-slate-400">No verified payments yet.</p>
+                <p className="text-sm text-slate-400">No verified payments in {displayYear}.</p>
               ) : (
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={revenueMonthData} margin={{ left: 0, right: 16 }}>
@@ -358,7 +453,7 @@ export default function AnalyticsPage() {
             <div className="card">
               <h3 className="mb-4 font-semibold text-brand-900">Revenue by Day</h3>
               {dailyRevenue.length === 0 ? (
-                <p className="text-sm text-slate-400">No verified payments yet.</p>
+                <p className="text-sm text-slate-400">No verified payments in this period.</p>
               ) : (
                 <div className="max-h-80 overflow-y-auto">
                   <table className="w-full text-sm">
@@ -387,7 +482,7 @@ export default function AnalyticsPage() {
                           {dailyRevenue.reduce((s, d) => s + d.count, 0)}
                         </td>
                         <td className="py-2 text-right font-bold text-brand-900">
-                          {fmtMoney(totalRevenue)}
+                          {fmtMoney(sectionTotal)}
                         </td>
                       </tr>
                     </tfoot>
