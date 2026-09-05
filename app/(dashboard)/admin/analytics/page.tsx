@@ -10,6 +10,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
+  PieChart,
+  Pie,
+  Legend,
 } from "recharts";
 
 type Row = {
@@ -60,6 +63,7 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]["value"]>("all");
+  const [filterVal, setFilterVal] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -81,7 +85,6 @@ export default function AnalyticsPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return rows;
     return rows.filter((r) => {
       const fields: Record<string, string> = {
         status: r.status ?? "",
@@ -89,12 +92,45 @@ export default function AnalyticsPage() {
         requestor: r.profiles?.full_name ?? "",
         course: r.profiles?.course ?? "",
       };
+      if (filterVal && (fields[category] ?? "") !== filterVal) return false;
+      if (!q) return true;
       if (category === "all") {
         return Object.values(fields).some((v) => v.toLowerCase().includes(q));
       }
       return (fields[category] ?? "").toLowerCase().includes(q);
     });
-  }, [rows, query, category]);
+  }, [rows, query, category, filterVal]);
+
+  const valueOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of rows) {
+      const v =
+        category === "document"
+          ? r.documents?.name
+          : category === "status"
+          ? r.status
+          : category === "requestor"
+          ? r.profiles?.full_name
+          : category === "course"
+          ? r.profiles?.course
+          : "";
+      if (v) set.add(v);
+    }
+    return [...set].sort();
+  }, [rows, category]);
+
+  const activeCategoryLabel =
+    CATEGORIES.find((c) => c.value === category)?.label ?? "Field";
+
+  const filterBy = (field: "status" | "document", value: string) => {
+    setCategory(field);
+    setFilterVal(value);
+  };
+
+  const clearFilter = () => {
+    setQuery("");
+    setFilterVal("");
+  };
 
   const statusData = useMemo(() => {
     const map: Record<string, number> = {};
@@ -228,28 +264,67 @@ export default function AnalyticsPage() {
         <p className="text-sm text-slate-500">Request volume and demand trends.</p>
       </div>
 
-      <div className="card flex flex-wrap items-center gap-3">
-        <input
-          className="input flex-1"
-          placeholder="Search status, document, requestor, or course…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <select
-          className="input w-auto"
-          value={category}
-          onChange={(e) => setCategory(e.target.value as typeof category)}
-        >
-          {CATEGORIES.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
-            </option>
-          ))}
-        </select>
-        {query && (
-          <button onClick={() => setQuery("")} className="btn-outline">
-            Clear
-          </button>
+      <div className="card space-y-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            className="input flex-1"
+            placeholder={`Search ${activeCategoryLabel.toLowerCase()}…`}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <select
+            className="input w-auto"
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value as typeof category);
+              setFilterVal("");
+            }}
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {category !== "all" ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-slate-400">Show only:</span>
+            <select
+              className="input w-auto"
+              value={filterVal}
+              onChange={(e) => setFilterVal(e.target.value)}
+            >
+              <option value="">All {activeCategoryLabel.toLowerCase()}s</option>
+              {valueOptions.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+
+        {(filterVal || query) && (
+          <div className="flex flex-wrap items-center gap-2">
+            {filterVal && (
+              <button
+                onClick={() => setFilterVal("")}
+                className="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700"
+              >
+                {activeCategoryLabel}: {filterVal} ✕
+              </button>
+            )}
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
+              >
+                Search: {query} ✕
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -308,7 +383,16 @@ export default function AnalyticsPage() {
                       cursor={{ fill: "#EAF3FD" }}
                       contentStyle={{ borderRadius: 8, border: "1px solid #BBDEFB", fontSize: 12 }}
                     />
-                    <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={24}>
+                    <Bar
+                      dataKey="count"
+                      radius={[0, 6, 6, 0]}
+                      barSize={24}
+                      onClick={((data: any) => {
+                        const name = data?.payload?.name;
+                        if (name) filterBy("status", String(name));
+                      }) as any}
+                      style={{ cursor: "pointer" }}
+                    >
                       {statusData.map((entry) => (
                         <Cell
                           key={entry.name}
@@ -345,29 +429,39 @@ export default function AnalyticsPage() {
             </div>
 
             <div className="card lg:col-span-2">
-              <h3 className="mb-4 font-semibold text-brand-900">By Document Type</h3>
+              <h3 className="mb-2 font-semibold text-brand-900">By Document Type</h3>
+              <p className="mb-2 text-xs text-slate-400">Click a slice to filter by that document.</p>
               {documentData.length === 0 ? (
                 <p className="text-sm text-slate-400">No matching results.</p>
               ) : (
-                <ResponsiveContainer width="100%" height={Math.max(120, documentData.length * 40)}>
-                  <BarChart data={documentData} layout="vertical" margin={{ left: 0, right: 16 }}>
-                    <XAxis type="number" tick={{ fontSize: 12 }} />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      width={180}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <Tooltip
-                      cursor={{ fill: "#EAF3FD" }}
-                      contentStyle={{ borderRadius: 8, border: "1px solid #BBDEFB", fontSize: 12 }}
-                    />
-                    <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={24}>
+                <ResponsiveContainer width="100%" height={320}>
+                  <PieChart>
+                    <Pie
+                      data={documentData}
+                      dataKey="count"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={120}
+                      innerRadius={45}
+                      paddingAngle={2}
+                      label={((e: any) => `${e.name}: ${e.value}`) as any}
+                      style={{ cursor: "pointer" }}
+                      onClick={((data: any) => {
+                        const name = data?.payload?.name ?? data?.name;
+                        if (name) filterBy("document", String(name));
+                      }) as any}
+                    >
                       {documentData.map((_, i) => (
                         <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                       ))}
-                    </Bar>
-                  </BarChart>
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ borderRadius: 8, border: "1px solid #BBDEFB", fontSize: 12 }}
+                      formatter={(value) => [String(value), "Requests"]}
+                    />
+                    <Legend />
+                  </PieChart>
                 </ResponsiveContainer>
               )}
             </div>
