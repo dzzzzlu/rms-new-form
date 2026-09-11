@@ -157,7 +157,7 @@ export default function PrintDocument({ doc }: { doc: PrintDoc }) {
           </div>
         );
 
-      case "Certified True Copy - COR":
+      case "Certificate of Enrollment":
         return (
           <div className="print-area border-2 border-double border-slate-800 p-6 text-slate-900">
             <div className="text-center">
@@ -228,7 +228,7 @@ export default function PrintDocument({ doc }: { doc: PrintDoc }) {
           </div>
         );
 
-      case "Certificate of Enrollment":
+      case "Certified True Copy - COR":
         return (
           <div className="print-area border-2 border-double border-slate-800 p-6 text-slate-900">
             <div className="border-b-2 border-slate-800 pb-3 text-center">
