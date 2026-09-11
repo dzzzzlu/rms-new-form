@@ -157,7 +157,7 @@ export default function PrintDocument({ doc }: { doc: PrintDoc }) {
           </div>
         );
 
-      case "Certificate of Enrollment":
+      case "Certified True Copy - COR":
         return (
           <div className="print-area border-2 border-double border-slate-800 p-6 text-slate-900">
             <div className="text-center">
@@ -204,6 +204,12 @@ export default function PrintDocument({ doc }: { doc: PrintDoc }) {
               TOTAL UNITS ENROLLED: ________
             </p>
 
+            <p className="mt-3 text-[9px] leading-snug text-slate-600">
+              GRADING SYSTEM: 1.00 = 98-100; 1.25 = 95-97; 1.50 = 93-94; 1.75 = 90-92;
+              2.00 = 87-89; 2.25 = 84-86; 2.50 = 81-83; 2.75 = 79-80; 3.00 = 75-78;
+              4.00 = INC; 5.00 = FAILED; DRP = DROPPED
+            </p>
+
             <p className="mt-3 indent-10 text-[11px] leading-relaxed">
               This certification is issued upon the request of <b>{doc.fullName}</b> for whatever
               legal purpose it may serve.
@@ -222,7 +228,7 @@ export default function PrintDocument({ doc }: { doc: PrintDoc }) {
           </div>
         );
 
-      case "Certified True Copy - COR":
+      case "Certificate of Enrollment":
         return (
           <div className="print-area border-2 border-double border-slate-800 p-6 text-slate-900">
             <div className="border-b-2 border-slate-800 pb-3 text-center">
