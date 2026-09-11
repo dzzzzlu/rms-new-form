@@ -128,14 +128,21 @@ export default function NewRequestPage() {
 
         await supabase.from("requests").update({ status: "Payment Verification" }).eq("id", request.id);
       } else {
-        await supabase.from("payments").insert({
+        const { error: payErr } = await supabase.from("payments").insert({
           request_id: request.id,
           gcash_reference: "",
           proof_image: "",
           amount: doc.fee * copies,
-          status: "Verified",
+          status: "Pending",
           payment_method: "walk_in",
         });
+
+        if (payErr) {
+          setLoading(false);
+          return setError(payErr.message);
+        }
+
+        await supabase.from("requests").update({ status: "Payment Verification" }).eq("id", request.id);
       }
     }
 
