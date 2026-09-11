@@ -42,7 +42,7 @@ export default function ManageRequestsPage() {
     const { data, error } = await supabase
       .from("requests")
       .select(
-        "id, tracking_code, purpose, copies, status, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), profiles(full_name, student_number, course)"
+        "id, tracking_code, purpose, copies, status, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), profiles(full_name, student_number, course, contact_number, email)"
       )
       .order("created_at", { ascending: false });
     if (error) {
@@ -200,6 +200,8 @@ export default function ManageRequestsPage() {
                   status: r.status,
                   classList: r.class_list,
                   issuedAt: r.created_at,
+                  contactNumber: r.profiles?.contact_number ?? null,
+                  email: r.profiles?.email ?? null,
                 }}
               />
             </div>
