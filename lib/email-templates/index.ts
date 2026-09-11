@@ -64,3 +64,10 @@ export const emailVerification = (code: string) =>
      <p style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#0D47A1;margin:24px 0;">${code}</p>
      <p style="color:#64748b;font-size:12px;">This code expires in 10 minutes. If you didn't create an account, ignore this email.</p>`
   );
+
+export const accountApproved = (studentName: string) =>
+  wrapper(
+    "Account Approved",
+    `<p style="color:#334155;font-size:14px;">Hi <strong>${studentName}</strong>,</p>
+     <p style="color:#334155;font-size:14px;">Your Regis Marie College account has been <strong>approved</strong> by the administrator. You can now sign in and start requesting documents.</p>`
+  );

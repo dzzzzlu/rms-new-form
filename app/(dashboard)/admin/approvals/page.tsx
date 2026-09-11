@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { UserCheck, UserX } from "lucide-react";
+import emailjs from "@emailjs/browser";
+import { accountApproved } from "@/lib/email-templates";
+
+const SERVICE_ID = "service_nhk5a1v";
+const TEMPLATE_ID = "template_sbsok4n";
+const PUBLIC_KEY = "UYVOvfUlIE-yUdJR1";
 
 type PendingUser = {
   id: string;
@@ -39,18 +45,40 @@ export default function AdminApprovalsPage() {
     load();
   }, []);
 
-  async function approve(id: string) {
-    setProcessingId(id);
+  async function approve(u: PendingUser) {
+    setProcessingId(u.id);
     const { error } = await supabase
       .from("profiles")
       .update({ is_active: true })
-      .eq("id", id);
+      .eq("id", u.id);
     if (error) {
       toast.error("Failed to approve user.");
       setProcessingId(null);
       return;
     }
-    toast.success("User approved.");
+
+    // Tell the student their account is ready
+    await supabase.from("notifications").insert({
+      user_id: u.id,
+      message: "Your account has been approved. You can now sign in and request documents.",
+    });
+
+    try {
+      await emailjs.send(
+        SERVICE_ID,
+        TEMPLATE_ID,
+        {
+          to_email: u.email,
+          subject: "Account Approved — Regis Marie College",
+          html_content: accountApproved(u.full_name),
+        },
+        { publicKey: PUBLIC_KEY }
+      );
+    } catch (err) {
+      console.error("Approval email error:", err);
+    }
+
+    toast.success(`${u.full_name} has been approved.`);
     setProcessingId(null);
     load();
   }
@@ -131,7 +159,7 @@ export default function AdminApprovalsPage() {
               )}
               <div className="flex gap-2">
                 <button
-                  onClick={() => approve(u.id)}
+                  onClick={() => approve(u)}
                   disabled={processingId === u.id}
                   className="btn-primary flex items-center gap-1"
                 >
