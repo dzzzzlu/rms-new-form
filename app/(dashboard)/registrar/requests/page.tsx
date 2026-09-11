@@ -55,14 +55,22 @@ export default function ManageRequestsPage() {
 
   async function load() {
     setLoading(true);
-    const { data, error } = await supabase
+    const select =
+      "id, tracking_code, batch_id, purpose, copies, status, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), profiles(full_name, student_number, course, contact_number, email)";
+    let { data, error } = await supabase
       .from("requests")
-      .select(
-        "id, tracking_code, batch_id, purpose, copies, status, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), profiles(full_name, student_number, course, contact_number, email)"
-      )
+      .select(select)
       .order("created_at", { ascending: false });
     if (error) {
-      toast.error("Failed to load requests.");
+      const { data: fallback, error: fallbackError } = await supabase
+        .from("requests")
+        .select(select.replace(", batch_id", ""))
+        .order("created_at", { ascending: false });
+      if (fallbackError) {
+        toast.error("Failed to load requests.");
+      } else {
+        data = fallback;
+      }
     }
     setRequests((data as unknown as RequestWithRelations[]) ?? []);
     setLoading(false);
