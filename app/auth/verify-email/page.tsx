@@ -16,7 +16,7 @@ function VerifyEmailForm() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [timer, setTimer] = useState(60);
+  const [timer, setTimer] = useState(10);
   const [resendError, setResendError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -66,7 +66,7 @@ function VerifyEmailForm() {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         toast.success("New code sent!");
-        setTimer(60);
+        setTimer(10);
         setResendError(null);
       } else {
         setResendError(data.error || "Failed to resend code.");
