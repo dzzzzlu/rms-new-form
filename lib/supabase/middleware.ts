@@ -19,6 +19,53 @@ const routeRole: Record<string, Role> = {
   guidance: "guidance",
 };
 
+type ProfileGate = {
+  role: Role;
+  is_active: boolean;
+  email_verified: boolean;
+  email: string | null;
+} | null;
+
+// Fetch the profile for gating. If the email_verified column does not exist yet
+// (migration 016 not applied), fall back to the base columns so the middleware
+// never hard-fails and loops between redirects.
+async function getProfile(
+  supabase: ReturnType<typeof createServerClient>,
+  userId: string
+): Promise<ProfileGate> {
+  let { data } = await supabase
+    .from("profiles")
+    .select("role, is_active, email_verified, email")
+    .eq("id", userId)
+    .single();
+
+  if (data) {
+    return {
+      role: data.role as Role,
+      is_active: data.is_active !== false,
+      email_verified: data.email_verified === true,
+      email: data.email ?? null,
+    };
+  }
+
+  const { data: basic } = await supabase
+    .from("profiles")
+    .select("role, is_active")
+    .eq("id", userId)
+    .single();
+
+  if (basic) {
+    return {
+      role: basic.role as Role,
+      is_active: basic.is_active !== false,
+      email_verified: true,
+      email: null,
+    };
+  }
+
+  return null;
+}
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -65,11 +112,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && isProtected) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, is_active, email_verified, email")
-      .eq("id", user.id)
-      .single();
+    const profile = await getProfile(supabase, user.id);
 
     if (!profile) {
       const url = request.nextUrl.clone();
@@ -99,11 +142,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && isPendingPage) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, is_active")
-      .eq("id", user.id)
-      .single();
+    const profile = await getProfile(supabase, user.id);
     if (profile?.is_active) {
       const url = request.nextUrl.clone();
       url.pathname = roleHome[profile.role] ?? "/student/dashboard";
@@ -112,11 +151,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && isAuthPage) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, is_active")
-      .eq("id", user.id)
-      .single();
+    const profile = await getProfile(supabase, user.id);
     const url = request.nextUrl.clone();
     if (profile && !profile.is_active) {
       url.pathname = "/student/pending";
