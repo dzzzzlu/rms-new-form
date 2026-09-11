@@ -9,6 +9,7 @@ function VerifyEmailForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
+  const sendError = searchParams.get("sendError") === "1";
 
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -111,6 +112,13 @@ function VerifyEmailForm() {
             We sent a 6-digit code to <strong className="text-slate-700">{email}</strong>
           </p>
         </div>
+
+        {sendError && (
+          <div className="rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-700">
+            We couldn't send the code automatically. Use <strong>Resend Code</strong> below once
+            it's available, or check that your email service is working.
+          </div>
+        )}
 
         <form onSubmit={handleVerify} className="space-y-4">
           <div>

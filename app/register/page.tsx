@@ -84,7 +84,7 @@ export default function RegisterPage() {
 
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
       options: {
@@ -106,14 +106,25 @@ export default function RegisterPage() {
       return;
     }
 
-    await fetch("/api/auth/send-verification", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: form.email }),
-    });
+    // Make sure the new account has no active session until verified.
+    await supabase.auth.signOut();
+
+    let sendFailed = false;
+    try {
+      const res = await fetch("/api/auth/send-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email }),
+      });
+      if (!res.ok) sendFailed = true;
+    } catch {
+      sendFailed = true;
+    }
 
     setLoading(false);
-    router.push(`/auth/verify-email?email=${encodeURIComponent(form.email)}`);
+    router.push(
+      `/auth/verify-email?email=${encodeURIComponent(form.email)}${sendFailed ? "&sendError=1" : ""}`
+    );
   }
 
   return (

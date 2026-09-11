@@ -45,6 +45,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
     }
 
+    await supabase.from("profiles").update({ email_verified: true }).eq("id", profile.id);
+
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: "Verification failed." }, { status: 500 });

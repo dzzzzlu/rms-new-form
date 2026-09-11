@@ -67,13 +67,20 @@ export async function updateSession(request: NextRequest) {
   if (user && isProtected) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, is_active")
+      .select("role, is_active, email_verified, email")
       .eq("id", user.id)
       .single();
 
     if (!profile) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
+      return NextResponse.redirect(url);
+    }
+
+    if (profile.email_verified === false) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/auth/verify-email";
+      url.searchParams.set("email", profile.email ?? user.email ?? "");
       return NextResponse.redirect(url);
     }
 

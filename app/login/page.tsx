@@ -50,9 +50,16 @@ function LoginForm() {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, is_active")
+      .select("role, is_active, email_verified")
       .eq("id", data.user.id)
       .single();
+
+    if (profile && profile.email_verified === false) {
+      await supabase.auth.signOut();
+      setError("Please verify your email before signing in — enter the 6-digit code we emailed you.");
+      setLoading(false);
+      return;
+    }
 
     if (profile && !profile.is_active) {
       await supabase.auth.signOut();
