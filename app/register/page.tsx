@@ -109,22 +109,28 @@ export default function RegisterPage() {
     // Make sure the new account has no active session until verified.
     await supabase.auth.signOut();
 
-    let sendFailed = false;
+    let sendErrorMsg = "";
     try {
       const res = await fetch("/api/auth/send-verification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: form.email }),
       });
-      if (!res.ok) sendFailed = true;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        sendErrorMsg = data.error || "Unknown error";
+      }
     } catch {
-      sendFailed = true;
+      sendErrorMsg = "Could not reach the server.";
     }
 
     setLoading(false);
-    router.push(
-      `/auth/verify-email?email=${encodeURIComponent(form.email)}${sendFailed ? "&sendError=1" : ""}`
-    );
+    const params = new URLSearchParams({ email: form.email });
+    if (sendErrorMsg) {
+      params.set("sendError", "1");
+      params.set("err", sendErrorMsg);
+    }
+    router.push(`/auth/verify-email?${params.toString()}`);
   }
 
   return (

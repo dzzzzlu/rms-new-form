@@ -31,7 +31,7 @@ export async function sendEmailJS({
   if (!res.ok) {
     const text = await res.text();
     console.error("EmailJS error:", res.status, text);
-    throw new Error(`EmailJS failed: ${res.status}`);
+    throw new Error(`EmailJS failed (${res.status}): ${text.slice(0, 300)}`);
   }
 
   return res.text();

@@ -41,10 +41,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ message: "Verification code sent." });
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
     console.error("Send verification error:", err);
-    return NextResponse.json(
-      { error: "Failed to send code. Check the email service settings." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: `Failed to send code: ${msg}` }, { status: 500 });
   }
 }

@@ -10,12 +10,14 @@ function VerifyEmailForm() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
   const sendError = searchParams.get("sendError") === "1";
+  const sendErrorMsg = searchParams.get("err");
 
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [success, setSuccess] = useState(false);
   const [timer, setTimer] = useState(60);
+  const [resendError, setResendError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!email) return;
@@ -61,13 +63,17 @@ function VerifyEmailForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         toast.success("New code sent!");
         setTimer(60);
+        setResendError(null);
       } else {
-        toast.error("Failed to resend code.");
+        setResendError(data.error || "Failed to resend code.");
+        toast.error(data.error || "Failed to resend code.");
       }
     } catch {
+      setResendError("Could not reach the server. Please try again in a moment.");
       toast.error("Something went wrong.");
     }
     setResending(false);
@@ -115,8 +121,13 @@ function VerifyEmailForm() {
 
         {sendError && (
           <div className="rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-700">
-            We couldn't send the code automatically. Use <strong>Resend Code</strong> below once
-            it's available, or check that your email service is working.
+            We couldn't send the code automatically.
+            {sendErrorMsg ? (
+              <>
+                {" "}Reason: <span className="font-mono text-xs">{sendErrorMsg}</span>
+              </>
+            ) : null}{" "}
+            Use <strong>Resend Code</strong> below once it's available.
           </div>
         )}
 
@@ -155,6 +166,11 @@ function VerifyEmailForm() {
             >
               {resending ? "Sending..." : "Resend Code"}
             </button>
+          )}
+          {resendError && (
+            <p className="mt-2 break-all text-xs text-red-600">
+              Could not send the code: <span className="font-mono">{resendError}</span>
+            </p>
           )}
         </div>
 
