@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RequestWithRelations } from "@/lib/types";
 import { sendNotification } from "@/lib/notify";
 import { Inbox } from "lucide-react";
 import { toast } from "sonner";
-import PrintDocument from "@/components/PrintDocument";
+import PrintDocument, { type PrintDoc } from "@/components/PrintDocument";
 
 const STATUSES = [
   "Pending",
@@ -29,6 +29,22 @@ function nextStatuses(current: string): readonly string[] {
   return STATUSES;
 }
 
+function toPrintDoc(r: RequestWithRelations): PrintDoc {
+  return {
+    docName: r.documents?.name ?? "Document",
+    trackingCode: r.tracking_code,
+    fullName: r.profiles?.full_name ?? "Student",
+    studentNumber: r.profiles?.student_number ?? null,
+    course: r.profiles?.course ?? null,
+    copies: r.copies,
+    status: r.status,
+    classList: r.class_list,
+    issuedAt: r.created_at,
+    contactNumber: r.profiles?.contact_number ?? null,
+    email: r.profiles?.email ?? null,
+  };
+}
+
 export default function ManageRequestsPage() {
   const supabase = createClient();
   const [requests, setRequests] = useState<RequestWithRelations[]>([]);
@@ -42,7 +58,7 @@ export default function ManageRequestsPage() {
     const { data, error } = await supabase
       .from("requests")
       .select(
-        "id, tracking_code, purpose, copies, status, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), profiles(full_name, student_number, course, contact_number, email)"
+        "id, tracking_code, batch_id, purpose, copies, status, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), profiles(full_name, student_number, course, contact_number, email)"
       )
       .order("created_at", { ascending: false });
     if (error) {
@@ -104,6 +120,17 @@ export default function ManageRequestsPage() {
     return matchStatus && matchSearch;
   });
 
+  const groups = useMemo(() => {
+    const map = new Map<string, RequestWithRelations[]>();
+    for (const r of visible) {
+      const key = r.batch_id ?? `_single_${r.id}`;
+      const arr = map.get(key) ?? [];
+      arr.push(r);
+      map.set(key, arr);
+    }
+    return Array.from(map.values());
+  }, [visible]);
+
   return (
     <div className="space-y-4">
       <div className="card flex flex-wrap items-center gap-3">
@@ -141,71 +168,76 @@ export default function ManageRequestsPage() {
           <p className="text-sm font-medium text-slate-500">No requests in this view.</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {visible.map((r) => (
-            <div key={r.id} className="card space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-brand-900">
-                    {r.documents?.name} — {r.profiles?.full_name}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {r.tracking_code} · {r.profiles?.student_number ?? "—"} ·{" "}
-                    {new Date(r.created_at).toLocaleDateString()}
-                  </p>
+        <div className="space-y-6">
+          {groups.map((group) => {
+            const first = group[0];
+            const student = first.profiles;
+            return (
+              <div key={first.batch_id ?? `single-${first.id}`} className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-3 pl-1">
+                  <div>
+                    <p className="text-sm font-semibold text-brand-900">
+                      {student?.full_name ?? "Student"} · {group.length} document
+                      {group.length !== 1 ? "s" : ""}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {student?.student_number ?? "—"} · {group.map((r) => r.tracking_code).join(" · ")}
+                    </p>
+                  </div>
+                  <PrintDocument docs={group.map(toPrintDoc)} />
                 </div>
-                <select
-                  className="input w-auto"
-                  value={r.status}
-                  disabled={updatingId === r.id || (r.status as string) === "Completed" || (r.status as string) === "Rejected"}
-                  onChange={(e) => updateStatus(r, e.target.value)}
-                >
-                  {nextStatuses(r.status).map((s) => (
-                    <option key={s}>{s}</option>
+
+                <div className="space-y-2">
+                  {group.map((r) => (
+                    <div key={r.id} className="card space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-brand-900">{r.documents?.name}</p>
+                          <p className="text-xs text-slate-500">
+                            {r.tracking_code} · copied {r.copies}× ·{" "}
+                            {new Date(r.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <select
+                          className="input w-auto"
+                          value={r.status}
+                          disabled={updatingId === r.id || (r.status as string) === "Completed" || (r.status as string) === "Rejected"}
+                          onChange={(e) => updateStatus(r, e.target.value)}
+                        >
+                          {nextStatuses(r.status).map((s) => (
+                            <option key={s}>{s}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {r.documents?.name === "Good Moral Certificate" && (
+                        <p className="text-xs">
+                          Guidance approval:{" "}
+                          <span
+                            className={`badge ${
+                              r.guidance_status === "Approved"
+                                ? "bg-emerald-50 text-emerald-700"
+                                : r.guidance_status === "Rejected"
+                                ? "bg-red-50 text-red-700"
+                                : "bg-amber-50 text-amber-700"
+                            }`}
+                          >
+                            {r.guidance_status ?? "Pending"}
+                          </span>
+                        </p>
+                      )}
+
+                      {r.documents?.name === "Certificate of Enrollment" && r.class_list && (
+                        <p className="whitespace-pre-line text-xs text-slate-600">
+                          Class list: {r.class_list}
+                        </p>
+                      )}
+                    </div>
                   ))}
-                </select>
+                </div>
               </div>
-
-              {r.documents?.name === "Good Moral Certificate" && (
-                <p className="text-xs">
-                  Guidance approval:{" "}
-                  <span
-                    className={`badge ${
-                      r.guidance_status === "Approved"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : r.guidance_status === "Rejected"
-                        ? "bg-red-50 text-red-700"
-                        : "bg-amber-50 text-amber-700"
-                    }`}
-                  >
-                    {r.guidance_status ?? "Pending"}
-                  </span>
-                </p>
-              )}
-
-              {r.documents?.name === "Certificate of Enrollment" && r.class_list && (
-                <p className="whitespace-pre-line text-xs text-slate-600">
-                  Class list: {r.class_list}
-                </p>
-              )}
-
-              <PrintDocument
-                doc={{
-                  docName: r.documents?.name ?? "Document",
-                  trackingCode: r.tracking_code,
-                  fullName: r.profiles?.full_name ?? "Student",
-                  studentNumber: r.profiles?.student_number ?? null,
-                  course: r.profiles?.course ?? null,
-                  copies: r.copies,
-                  status: r.status,
-                  classList: r.class_list,
-                  issuedAt: r.created_at,
-                  contactNumber: r.profiles?.contact_number ?? null,
-                  email: r.profiles?.email ?? null,
-                }}
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

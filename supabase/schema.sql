@@ -87,6 +87,7 @@ create table requests (
   copies int not null default 1,
   status request_status not null default 'Pending',
   remarks text,
+  batch_id uuid,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

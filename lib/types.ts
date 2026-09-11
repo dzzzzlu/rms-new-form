@@ -45,6 +45,7 @@ export interface Request {
   copies: number;
   status: RequestStatus;
   remarks: string | null;
+  batch_id: string | null;
   class_list: string | null;
   guidance_status: ApprovalStatus | null;
   clearance_status: ApprovalStatus | null;

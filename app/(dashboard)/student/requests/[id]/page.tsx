@@ -68,7 +68,7 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
               {request.status}
             </span>
             <PrintDocument
-              doc={{
+              docs={[{
                 docName: doc?.name ?? "Document",
                 trackingCode: request.tracking_code,
                 fullName: schoolProfile.full_name,
@@ -78,7 +78,7 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
                 status: request.status,
                 classList: request.class_list,
                 issuedAt: request.updated_at,
-              }}
+              }]}
             />
           </div>
         </div>

@@ -87,11 +87,13 @@ export default function NewRequestPage() {
       }
     }
 
+    const batchId = crypto.randomUUID();
     for (const doc of selectedDocs) {
       const { data: request, error: reqErr } = await supabase
         .from("requests")
         .insert({
           tracking_code: trackingCode(),
+          batch_id: batchId,
           user_id: user.id,
           document_id: doc.id,
           purpose: sanitize(purpose),
