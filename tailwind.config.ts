@@ -18,6 +18,7 @@ const config: Config = {
           100: "#D1E1F6",
           50: "#EDF3FB",
         },
+        gold: "#D4AF37",
       },
       boxShadow: {
         sidebar: "4px 0 24px rgba(5,18,37,0.25)",
