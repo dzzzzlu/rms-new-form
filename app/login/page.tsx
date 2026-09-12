@@ -5,12 +5,82 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
-  FileText,
-  Clock,
-  Shield,
   ArrowRight,
+  BarChart3,
+  ClipboardCheck,
+  CreditCard,
+  FileBarChart,
+  FilePlus,
+  FileText,
+  History,
+  ListChecks,
+  MapPin,
+  TrendingUp,
+  Upload,
+  Users,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
+
+type Role = "home" | "student" | "registrar" | "admin";
+
+const CONTENT: Record<
+  Role,
+  {
+    eyebrow?: string;
+    title: string;
+    sub: string;
+    cards: { Icon: LucideIcon; title: string; desc: string }[];
+  }
+> = {
+  home: {
+    eyebrow: "RMC WILDCATS",
+    title: "Request your academic documents, fully online",
+    sub: "Transcripts, certificates, and diplomas — track every request from submission to pickup.",
+    cards: [
+      { Icon: FileText, title: "For students", desc: "Request documents and pay via GCash." },
+      { Icon: ClipboardCheck, title: "For the registrar", desc: "Verify payments and update statuses." },
+      { Icon: BarChart3, title: "For administrators", desc: "Manage accounts and view analytics." },
+    ],
+  },
+  student: {
+    eyebrow: "STUDENT PORTAL",
+    title: "Your documents, one tap away",
+    sub: "Request a transcript, pay via GCash, and watch it move from pending to ready — no more lining up at the registrar's window.",
+    cards: [
+      { Icon: FilePlus, title: "New request", desc: "Start a fresh document request in minutes." },
+      { Icon: MapPin, title: "Track status", desc: "Follow your request from pending to ready." },
+      { Icon: History, title: "Request history", desc: "Review everything you've requested before." },
+    ],
+  },
+  registrar: {
+    eyebrow: "REGISTRAR PORTAL",
+    title: "Keep every request moving",
+    sub: "Verify GCash payments, update statuses in one click, and export reports — all requests in one queue.",
+    cards: [
+      { Icon: ListChecks, title: "Manage requests", desc: "See and update every request in one queue." },
+      { Icon: CreditCard, title: "Verify payments", desc: "Confirm GCash references before processing." },
+      { Icon: Upload, title: "Export reports", desc: "Pull request and revenue data anytime." },
+    ],
+  },
+  admin: {
+    eyebrow: "ADMIN PORTAL",
+    title: "See the whole system at a glance",
+    sub: "Manage user roles, watch demand trends by document and month, and keep the institution's data exportable.",
+    cards: [
+      { Icon: Users, title: "Manage users", desc: "Control roles and access across the system." },
+      { Icon: TrendingUp, title: "Analytics", desc: "Track demand by status, month, and document." },
+      { Icon: FileBarChart, title: "Reports", desc: "Institution-wide, exportable at any time." },
+    ],
+  },
+};
+
+const TABS: { key: Role; label: string }[] = [
+  { key: "home", label: "Home" },
+  { key: "student", label: "Student" },
+  { key: "registrar", label: "Registrar" },
+  { key: "admin", label: "Admin" },
+];
 
 export default function LoginPage() {
   return (
@@ -29,6 +99,7 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resent, setResent] = useState(false);
+  const [role, setRole] = useState<Role>("home");
   const justVerified = searchParams.get("verified") === "1";
   const justRegistered = searchParams.get("registered") === "1";
 
@@ -92,16 +163,12 @@ function LoginForm() {
     router.push(`/auth/forgot-password?email=${encodeURIComponent(email)}`);
   }
 
-  const features = [
-    { icon: FileText, label: "Request documents online", desc: "No more long queues at the registrar" },
-    { icon: Clock, label: "Track in real-time", desc: "Know exactly where your request is" },
-    { icon: Shield, label: "Secure payments", desc: "Pay via GCash with proof upload" },
-  ];
+  const c = CONTENT[role];
 
   return (
     <main className="flex min-h-screen">
       {/* Left panel — branding */}
-      <div className="hidden w-1/2 flex-col justify-between bg-gradient-to-br from-brand-950 via-brand-900 to-brand-700 p-10 lg:flex">
+      <div className="hidden w-1/2 flex-col justify-between bg-gradient-to-br from-brand-950 via-brand-900 to-brand-700 p-8 lg:flex xl:p-10">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
@@ -112,37 +179,48 @@ function LoginForm() {
               <p className="text-[11px] text-brand-200">Document Request System</p>
             </div>
           </div>
+
+          <nav className="mt-7 flex flex-wrap gap-2" aria-label="Portal preview">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setRole(t.key)}
+                aria-pressed={role === t.key}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                  role === t.key
+                    ? "bg-brand-300 text-brand-950"
+                    : "text-brand-200 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </nav>
         </div>
 
-        <div className="space-y-8">
-          <div>
-            <h1 className="text-3xl font-bold leading-tight text-white lg:text-4xl">
-              Request academic documents
-              <br />
-              <span className="text-brand-300">hassle-free.</span>
-            </h1>
-            <p className="mt-3 max-w-md text-sm leading-relaxed text-brand-200">
-              A digital platform for Regis Marie College students and alumni to request
-              transcripts, certificates, and other academic documents — anytime, anywhere.
-            </p>
-          </div>
+        <div className="mt-8 space-y-5">
+          {c.eyebrow && (
+            <p className="text-[11px] font-bold tracking-widest text-brand-300">{c.eyebrow}</p>
+          )}
+          <h1 className="text-3xl font-bold leading-tight text-white lg:text-4xl">{c.title}</h1>
+          <p className="max-w-md text-sm leading-relaxed text-brand-200">{c.sub}</p>
 
-          <div className="space-y-4">
-            {features.map((f) => (
-              <div key={f.label} className="flex items-start gap-3">
+          <div className="space-y-3">
+            {c.cards.map((f) => (
+              <div key={f.title} className="flex items-start gap-3 rounded-xl bg-white/10 p-4">
                 <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10">
-                  <f.icon className="h-4 w-4 text-brand-200" />
+                  <f.Icon className="h-4 w-4 shrink-0 text-brand-200" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">{f.label}</p>
-                  <p className="text-xs text-brand-300">{f.desc}</p>
+                  <p className="text-sm font-semibold text-white">{f.title}</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-brand-300">{f.desc}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="text-[11px] text-brand-400">
+        <p className="mt-8 text-[11px] text-brand-400">
           &copy; {new Date().getFullYear()} Regis Marie College. All rights reserved.
         </p>
       </div>
