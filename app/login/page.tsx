@@ -171,9 +171,9 @@ function LoginForm() {
   return (
     <main className="flex min-h-screen">
       {/* Left panel — branding */}
-      <div className="hidden w-1/2 flex-col justify-between bg-gradient-to-br from-brand-950 via-brand-900 to-brand-700 p-7 lg:flex xl:p-9">
-        {/* Header */}
-        <div>
+      <div className="hidden w-1/2 flex-col bg-gradient-to-br from-brand-950 via-brand-900 to-brand-700 lg:flex">
+        {/* Sticky top bar */}
+        <div className="sticky top-0 z-30 border-b border-white/10 bg-brand-950/90 px-7 py-6 backdrop-blur xl:px-9">
           <div className="flex flex-wrap items-center justify-between gap-4">
             {/* Brand */}
             <div className="flex items-center gap-2.5">
@@ -235,31 +235,34 @@ function LoginForm() {
           )}
         </div>
 
-        {/* Hero banner */}
-        <section className="my-8 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm sm:p-8">
-          {c.eyebrow && (
-            <p className="mb-2.5 text-[11px] font-bold tracking-widest text-gold">{c.eyebrow}</p>
-          )}
-          <h1 className="text-2xl font-bold leading-tight text-white lg:text-3xl">{c.title}</h1>
-          <p className="mt-2.5 max-w-md text-sm leading-relaxed text-brand-200">{c.sub}</p>
-        </section>
+        {/* Body */}
+        <div className="flex flex-1 flex-col px-7 py-8 xl:px-9">
+          {/* Hero banner */}
+          <section className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm sm:p-8">
+            {c.eyebrow && (
+              <p className="mb-2.5 text-[11px] font-bold tracking-widest text-gold">{c.eyebrow}</p>
+            )}
+            <h1 className="text-2xl font-bold leading-tight text-white lg:text-3xl">{c.title}</h1>
+            <p className="mt-2.5 max-w-md text-sm leading-relaxed text-brand-200">{c.sub}</p>
+          </section>
 
-        {/* Feature cards */}
-        <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {c.cards.map((f) => (
-            <div key={f.title} className="rounded-xl border border-white/10 bg-white/5 p-3.5">
-              <div className="mb-2.5 flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
-                <f.Icon className="h-4 w-4 text-gold" strokeWidth={2} />
+          {/* Feature cards */}
+          <section className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {c.cards.map((f) => (
+              <div key={f.title} className="rounded-xl border border-white/10 bg-white/5 p-3.5">
+                <div className="mb-2.5 flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
+                  <f.Icon className="h-4 w-4 text-gold" strokeWidth={2} />
+                </div>
+                <p className="text-xs font-semibold leading-snug text-white">{f.title}</p>
+                <p className="mt-0.5 text-[11px] leading-snug text-brand-300">{f.desc}</p>
               </div>
-              <p className="text-xs font-semibold leading-snug text-white">{f.title}</p>
-              <p className="mt-0.5 text-[11px] leading-snug text-brand-300">{f.desc}</p>
-            </div>
-          ))}
-        </section>
+            ))}
+          </section>
 
-        <p className="mt-8 text-[11px] text-brand-400">
-          &copy; {new Date().getFullYear()} Regis Marie College. All rights reserved.
-        </p>
+          <p className="mt-auto pt-8 text-[11px] text-brand-400">
+            &copy; {new Date().getFullYear()} Regis Marie College. All rights reserved.
+          </p>
+        </div>
       </div>
 
       {/* Right panel — form */}
