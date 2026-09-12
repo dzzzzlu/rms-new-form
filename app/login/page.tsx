@@ -15,9 +15,11 @@ import {
   History,
   ListChecks,
   MapPin,
+  Menu,
   TrendingUp,
   Upload,
   Users,
+  X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
@@ -100,6 +102,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [resent, setResent] = useState(false);
   const [role, setRole] = useState<Role>("home");
+  const [mobileNav, setMobileNav] = useState(false);
   const justVerified = searchParams.get("verified") === "1";
   const justRegistered = searchParams.get("registered") === "1";
 
@@ -168,57 +171,91 @@ function LoginForm() {
   return (
     <main className="flex min-h-screen">
       {/* Left panel — branding */}
-      <div className="hidden w-1/2 flex-col justify-between bg-gradient-to-br from-brand-950 via-brand-900 to-brand-700 p-8 lg:flex xl:p-10">
+      <div className="hidden w-1/2 flex-col justify-between bg-gradient-to-br from-brand-950 via-brand-900 to-brand-700 p-7 lg:flex xl:p-9">
+        {/* Header */}
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-              <Image src="/logo.png" alt="Regis Marie College" width={32} height={32} className="rounded-lg" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-white">Regis Marie College</p>
-              <p className="text-[11px] text-brand-200">Document Request System</p>
-            </div>
-          </div>
-
-          <nav className="mt-7 flex flex-wrap gap-2" aria-label="Portal preview">
-            {TABS.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setRole(t.key)}
-                aria-pressed={role === t.key}
-                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                  role === t.key
-                    ? "bg-brand-300 text-brand-950"
-                    : "text-brand-200 hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        <div className="mt-8 space-y-5">
-          {c.eyebrow && (
-            <p className="text-[11px] font-bold tracking-widest text-gold">{c.eyebrow}</p>
-          )}
-          <h1 className="text-3xl font-bold leading-tight text-white lg:text-4xl">{c.title}</h1>
-          <p className="max-w-md text-sm leading-relaxed text-brand-200">{c.sub}</p>
-
-          <div className="space-y-3">
-            {c.cards.map((f) => (
-              <div key={f.title} className="flex items-start gap-3 rounded-xl bg-white/10 p-4">
-                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10">
-                  <f.Icon className="h-4 w-4 shrink-0 text-brand-200" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-white">{f.title}</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-brand-300">{f.desc}</p>
-                </div>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            {/* Brand */}
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+                <Image src="/logo.png" alt="Regis Marie College" width={32} height={32} className="rounded-lg" />
               </div>
-            ))}
+              <div>
+                <p className="text-sm font-bold leading-tight text-white">Regis Marie College</p>
+                <p className="text-[11px] text-brand-200">Document Request System</p>
+              </div>
+            </div>
+
+            {/* Center tabs (desktop) */}
+            <nav className="hidden gap-1.5 lg:flex" aria-label="Portal preview">
+              {TABS.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setRole(t.key)}
+                  aria-pressed={role === t.key}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                    role === t.key
+                      ? "bg-gold text-brand-950"
+                      : "text-brand-200 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </nav>
+
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMobileNav(!mobileNav)}
+              className="rounded-lg p-2 text-white lg:hidden"
+              aria-label="Toggle navigation"
+            >
+              {mobileNav ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
+
+          {/* Mobile nav dropdown */}
+          {mobileNav && (
+            <div className="mt-3 flex flex-col gap-1.5 lg:hidden">
+              {TABS.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => {
+                    setRole(t.key);
+                    setMobileNav(false);
+                  }}
+                  className={`rounded-lg px-4 py-2 text-left text-sm font-semibold transition ${
+                    role === t.key ? "bg-gold text-brand-950" : "text-brand-200 hover:bg-white/10"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Hero banner */}
+        <section className="my-8 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm sm:p-8">
+          {c.eyebrow && (
+            <p className="mb-2.5 text-[11px] font-bold tracking-widest text-gold">{c.eyebrow}</p>
+          )}
+          <h1 className="text-2xl font-bold leading-tight text-white lg:text-3xl">{c.title}</h1>
+          <p className="mt-2.5 max-w-md text-sm leading-relaxed text-brand-200">{c.sub}</p>
+        </section>
+
+        {/* Feature cards */}
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {c.cards.map((f) => (
+            <div key={f.title} className="rounded-xl border border-white/10 bg-white/5 p-3.5">
+              <div className="mb-2.5 flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
+                <f.Icon className="h-4 w-4 text-gold" strokeWidth={2} />
+              </div>
+              <p className="text-xs font-semibold leading-snug text-white">{f.title}</p>
+              <p className="mt-0.5 text-[11px] leading-snug text-brand-300">{f.desc}</p>
+            </div>
+          ))}
+        </section>
 
         <p className="mt-8 text-[11px] text-brand-400">
           &copy; {new Date().getFullYear()} Regis Marie College. All rights reserved.
