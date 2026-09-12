@@ -200,7 +200,7 @@ function LoginForm() {
 
         <div className="mt-8 space-y-5">
           {c.eyebrow && (
-            <p className="text-[11px] font-bold tracking-widest text-brand-300">{c.eyebrow}</p>
+            <p className="text-[11px] font-bold tracking-widest text-gold">{c.eyebrow}</p>
           )}
           <h1 className="text-3xl font-bold leading-tight text-white lg:text-4xl">{c.title}</h1>
           <p className="max-w-md text-sm leading-relaxed text-brand-200">{c.sub}</p>
