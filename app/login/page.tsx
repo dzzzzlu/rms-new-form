@@ -171,7 +171,7 @@ function LoginForm() {
   return (
     <main className="flex min-h-screen">
       {/* Left panel — branding */}
-      <div className="hidden w-1/2 flex-col bg-brand-950 lg:flex">
+      <div className="hidden w-[45%] flex-col bg-brand-950 lg:flex">
         {/* Sticky top bar */}
         <div className="sticky top-0 z-30 border-b border-white/10 bg-brand-950 px-8 py-6 xl:px-10">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -266,7 +266,7 @@ function LoginForm() {
       </div>
 
       {/* Right panel — form */}
-      <div className="relative flex w-full items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-brand-50/40 px-6 py-10 lg:w-1/2">
+      <div className="relative flex w-full items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-brand-50/40 px-6 py-10 lg:w-[55%]">
         {/* background watermark */}
         <div
           className="pointer-events-none absolute inset-0 bg-center bg-no-repeat bg-contain opacity-[0.04]"
