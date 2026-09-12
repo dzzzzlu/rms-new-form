@@ -169,9 +169,9 @@ function LoginForm() {
   const c = CONTENT[role];
 
   return (
-    <main className="flex min-h-screen bg-gradient-to-r from-brand-950 via-brand-700 to-brand-50">
+    <main className="flex min-h-screen">
       {/* Left panel — branding */}
-      <div className="hidden w-1/2 flex-col justify-between p-7 lg:flex xl:p-9">
+      <div className="hidden w-1/2 flex-col justify-between bg-gradient-to-br from-brand-950 via-brand-900 to-brand-700 p-7 lg:flex xl:p-9">
         {/* Header */}
         <div>
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -263,7 +263,7 @@ function LoginForm() {
       </div>
 
       {/* Right panel — form */}
-      <div className="relative flex w-full items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-brand-50/40 px-6 py-10 lg:w-1/2 lg:bg-transparent">
+      <div className="relative flex w-full items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-brand-50/40 px-6 py-10 lg:w-1/2">
         {/* background watermark */}
         <div
           className="pointer-events-none absolute inset-0 bg-center bg-no-repeat bg-contain opacity-[0.04]"
