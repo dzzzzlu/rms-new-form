@@ -171,9 +171,15 @@ function LoginForm() {
   return (
     <main className="flex min-h-screen">
       {/* Left panel — branding */}
-      <div className="hidden w-1/2 flex-col bg-gradient-to-br from-brand-950 via-brand-900 to-brand-700 lg:flex">
+      <div
+        className="hidden w-1/2 flex-col bg-gradient-to-br from-brand-950 via-brand-900 to-brand-700 lg:flex"
+        style={{
+          WebkitMaskImage: "linear-gradient(to right, black 65%, transparent 100%)",
+          maskImage: "linear-gradient(to right, black 65%, transparent 100%)",
+        }}
+      >
         {/* Sticky top bar */}
-        <div className="sticky top-0 z-30 border-b border-white/10 bg-brand-950/90 px-7 py-6 backdrop-blur xl:px-9">
+        <div className="sticky top-0 z-30 border-b border-white/10 bg-brand-950/90 px-8 py-6 backdrop-blur xl:px-10">
           <div className="flex flex-wrap items-center justify-between gap-4">
             {/* Brand */}
             <div className="flex items-center gap-2.5">
@@ -235,21 +241,21 @@ function LoginForm() {
           )}
         </div>
 
-        {/* Body */}
-        <div className="flex flex-1 flex-col px-7 py-8 xl:px-9">
-          {/* Hero banner */}
-          <section className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm sm:p-8">
+        {/* Body — fills the whole panel */}
+        <div className="flex flex-1 flex-col px-8 py-10 xl:px-10">
+          {/* Hero banner — grows to occupy the middle */}
+          <section className="flex flex-1 flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm sm:p-8">
             {c.eyebrow && (
-              <p className="mb-2.5 text-[11px] font-bold tracking-widest text-gold">{c.eyebrow}</p>
+              <p className="mb-3 text-[11px] font-bold tracking-widest text-gold">{c.eyebrow}</p>
             )}
-            <h1 className="text-2xl font-bold leading-tight text-white lg:text-3xl">{c.title}</h1>
-            <p className="mt-2.5 max-w-md text-sm leading-relaxed text-brand-200">{c.sub}</p>
+            <h1 className="text-2xl font-bold leading-tight text-white lg:text-3xl xl:leading-snug">{c.title}</h1>
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-brand-200">{c.sub}</p>
           </section>
 
           {/* Feature cards */}
-          <section className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <section className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
             {c.cards.map((f) => (
-              <div key={f.title} className="rounded-xl border border-white/10 bg-white/5 p-3.5">
+              <div key={f.title} className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="mb-2.5 flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
                   <f.Icon className="h-4 w-4 text-gold" strokeWidth={2} />
                 </div>
@@ -259,7 +265,7 @@ function LoginForm() {
             ))}
           </section>
 
-          <p className="mt-auto pt-8 text-[11px] text-brand-400">
+          <p className="mt-8 text-[11px] text-brand-400">
             &copy; {new Date().getFullYear()} Regis Marie College. All rights reserved.
           </p>
         </div>
