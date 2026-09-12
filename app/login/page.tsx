@@ -171,15 +171,9 @@ function LoginForm() {
   return (
     <main className="flex min-h-screen">
       {/* Left panel — branding */}
-      <div
-        className="hidden w-1/2 flex-col bg-gradient-to-br from-brand-950 via-brand-900 to-brand-700 lg:flex"
-        style={{
-          WebkitMaskImage: "linear-gradient(to right, black 65%, transparent 100%)",
-          maskImage: "linear-gradient(to right, black 65%, transparent 100%)",
-        }}
-      >
+      <div className="hidden w-1/2 flex-col bg-brand-950 lg:flex">
         {/* Sticky top bar */}
-        <div className="sticky top-0 z-30 border-b border-white/10 bg-brand-950/90 px-8 py-6 backdrop-blur xl:px-10">
+        <div className="sticky top-0 z-30 border-b border-white/10 bg-brand-950 px-8 py-6 xl:px-10">
           <div className="flex flex-wrap items-center justify-between gap-4">
             {/* Brand */}
             <div className="flex items-center gap-2.5">
@@ -187,8 +181,8 @@ function LoginForm() {
                 <Image src="/logo.png" alt="Regis Marie College" width={32} height={32} className="rounded-lg" />
               </div>
               <div>
-                <p className="text-sm font-bold leading-tight text-white">Regis Marie College</p>
-                <p className="text-[11px] text-brand-200">Document Request System</p>
+                <p className="text-base font-bold leading-tight text-white">Regis Marie College</p>
+                <p className="text-xs text-brand-200">Document Request System</p>
               </div>
             </div>
 
@@ -199,7 +193,7 @@ function LoginForm() {
                   key={t.key}
                   onClick={() => setRole(t.key)}
                   aria-pressed={role === t.key}
-                  className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
                     role === t.key
                       ? "bg-gold text-brand-950"
                       : "text-brand-200 hover:bg-white/10 hover:text-white"
@@ -246,26 +240,26 @@ function LoginForm() {
           {/* Hero banner — grows to occupy the middle */}
           <section className="flex flex-1 flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm sm:p-8">
             {c.eyebrow && (
-              <p className="mb-3 text-[11px] font-bold tracking-widest text-gold">{c.eyebrow}</p>
+              <p className="mb-4 text-sm font-bold tracking-[0.18em] text-gold">{c.eyebrow}</p>
             )}
-            <h1 className="text-2xl font-bold leading-tight text-white lg:text-3xl xl:leading-snug">{c.title}</h1>
-            <p className="mt-3 max-w-md text-sm leading-relaxed text-brand-200">{c.sub}</p>
+            <h1 className="text-3xl font-bold leading-tight text-white sm:text-4xl xl:text-5xl xl:leading-[1.15]">{c.title}</h1>
+            <p className="mt-4 max-w-md text-base leading-relaxed text-brand-200 sm:text-lg">{c.sub}</p>
           </section>
 
           {/* Feature cards */}
-          <section className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <section className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
             {c.cards.map((f) => (
-              <div key={f.title} className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="mb-2.5 flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
-                  <f.Icon className="h-4 w-4 text-gold" strokeWidth={2} />
+              <div key={f.title} className="rounded-xl border border-white/10 bg-white/5 p-4 sm:p-5">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
+                  <f.Icon className="h-5 w-5 text-gold" strokeWidth={2} />
                 </div>
-                <p className="text-xs font-semibold leading-snug text-white">{f.title}</p>
-                <p className="mt-0.5 text-[11px] leading-snug text-brand-300">{f.desc}</p>
+                <p className="text-sm font-semibold leading-snug text-white lg:text-base">{f.title}</p>
+                <p className="mt-1 text-xs leading-snug text-brand-300 lg:text-sm">{f.desc}</p>
               </div>
             ))}
           </section>
 
-          <p className="mt-8 text-[11px] text-brand-400">
+          <p className="mt-8 text-xs text-brand-400">
             &copy; {new Date().getFullYear()} Regis Marie College. All rights reserved.
           </p>
         </div>
