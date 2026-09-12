@@ -171,7 +171,7 @@ function LoginForm() {
   return (
     <main className="flex min-h-screen">
       {/* Left panel — branding */}
-      <div className="hidden w-[45%] flex-col bg-brand-950 lg:flex">
+      <div className="hidden w-1/2 flex-col bg-brand-950 lg:flex">
         {/* Sticky top bar */}
         <div className="sticky top-0 z-30 border-b border-white/10 bg-brand-950 px-8 py-6 xl:px-10">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -266,7 +266,7 @@ function LoginForm() {
       </div>
 
       {/* Right panel — form */}
-      <div className="relative flex w-full items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-brand-50/40 px-6 py-10 lg:w-[55%]">
+      <div className="relative flex w-full items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-brand-50/40 px-6 py-10 lg:w-1/2">
         {/* background watermark */}
         <div
           className="pointer-events-none absolute inset-0 bg-center bg-no-repeat bg-contain opacity-[0.04]"
@@ -276,8 +276,8 @@ function LoginForm() {
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand-100/30" />
         <div className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-brand-200/20" />
 
-        <div className="relative z-10 w-full max-w-md space-y-6">
-          <div className="rounded-2xl border border-brand-100/60 bg-white p-8 shadow-xl shadow-brand-900/5">
+        <div className="relative z-10 w-full max-w-lg space-y-6">
+          <div className="rounded-2xl border border-brand-100/60 bg-white p-9 shadow-xl shadow-brand-900/5">
             <div className="mb-6">
               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 lg:hidden">
                 <Image src="/logo.png" alt="Regis Marie College" width={40} height={40} className="rounded-lg" />
