@@ -61,7 +61,7 @@ export default async function HistoryPage() {
                   {new Date(r.created_at).toLocaleDateString()}
                 </p>
                 {r.purpose && <p className="mt-1 text-sm text-slate-600">Purpose: {r.purpose}</p>}
-                {r.status === "Ready for Pickup" && r.pickup_at && (
+                {r.pickup_at && (
                   <p className="mt-1 text-xs font-medium text-indigo-700">
                     Pickup:{" "}
                     {new Date(r.pickup_at).toLocaleString("en-PH", {

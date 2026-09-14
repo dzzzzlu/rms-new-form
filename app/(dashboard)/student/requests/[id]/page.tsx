@@ -121,11 +121,11 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
           </div>
         )}
 
-        {request.status === "Ready for Pickup" && request.pickup_at && (
+        {request.pickup_at && (
           <div className="rounded-lg bg-indigo-50 px-4 py-3 text-sm text-indigo-800">
-            <p className="font-semibold">Ready for Pickup</p>
+            <p className="font-semibold">Document Pickup Schedule</p>
             <p>
-              Your document is available for claiming. Please pick it up on{" "}
+              Your document is being processed. Please claim it on{" "}
               <strong>
                 {new Date(request.pickup_at).toLocaleDateString("en-PH", {
                   weekday: "long",

@@ -30,7 +30,7 @@ function nextStatuses(current: string, isWalkIn = false): readonly string[] {
   }
   if (current === "Pending") return ["Payment Verification", "Processing", "Rejected"];
   if (current === "Payment Verification") return ["Processing", "Rejected"];
-  if (current === "Processing") return ["Ready for Pickup", "Completed", "Rejected"];
+  if (current === "Processing") return ["Completed", "Rejected"];
   if (current === "Ready for Pickup") return ["Completed", "Rejected"];
   if (current === "Completed") return ["Completed"] as const;
   if (current === "Rejected") return ["Rejected"] as const;
@@ -196,7 +196,7 @@ export default function ManageRequestsPage() {
     load();
   }
 
-  async function confirmPickup() {
+  async function schedulePickup() {
     const r = pickupRequest;
     if (!r) return;
     if (!pickupDate || !pickupTime) {
@@ -209,7 +209,38 @@ export default function ManageRequestsPage() {
       return;
     }
     const label = formatPickup(pickupAt);
-    await updateStatus(r, "Ready for Pickup", pickupAt.toISOString(), `Pickup scheduled on ${label}.`, true);
+    setUpdatingId(r.id);
+    const { data: me } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from("requests")
+      .update({ pickup_at: pickupAt.toISOString() })
+      .eq("id", r.id);
+    if (error) {
+      toast.error("Failed to save the pickup schedule.");
+      setUpdatingId(null);
+      return;
+    }
+    await supabase.from("status_history").insert({
+      request_id: r.id,
+      status: r.status,
+      remarks: `Pickup scheduled on ${label}.`,
+    });
+
+    if (r.user_id && me?.user?.id) {
+      sendNotification({
+        senderId: me.user.id,
+        receiverId: r.user_id,
+        message: `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) is being processed at the registrar's office. Please pick it up on ${label}.`,
+        subject: `Pickup Scheduled — ${label}`,
+        link: `/student/requests/${r.id}`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Pickup Schedule</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your <strong>${r.documents?.name ?? "document"}</strong> request (<strong>${r.tracking_code}</strong>) is <strong>being processed</strong>. It will be ready for claiming at the registrar's office.</p><p style="background:#EEF2FF;padding:12px;border-radius:8px;"><strong>Pickup schedule:</strong><br/>${label}</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
+      });
+    }
+
+    toast.success(`Pickup scheduled for ${label}. Status stays "Processing" until the document is handed over.`);
+    setUpdatingId(null);
+    setPickupRequest(null);
+    load();
   }
 
   const visible = requests.filter((r) => {
@@ -305,21 +336,21 @@ export default function ManageRequestsPage() {
                             {r.tracking_code} · copied {r.copies}× ·{" "}
                             {new Date(r.created_at).toLocaleDateString()}
                           </p>
-                          {r.status === "Ready for Pickup" && r.pickup_at && (
+                          {r.pickup_at && (
                             <p className="text-xs font-medium text-indigo-700">
                               Pickup scheduled: {formatPickup(new Date(r.pickup_at))}
                             </p>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          {nextStatuses(r.status, isWalkIn(r)).includes("Ready for Pickup") && r.status !== "Ready for Pickup" && (
+                          {r.status === "Processing" && !isWalkIn(r) && (
                             <button
                               type="button"
                               onClick={() => handleStatusChange(r, "Ready for Pickup")}
                               className="btn-outline px-3 py-2 text-xs"
                               disabled={updatingId !== null}
                             >
-                              Schedule Pickup
+                              {r.pickup_at ? "Reschedule Pickup" : "Schedule Pickup"}
                             </button>
                           )}
                           <select
@@ -371,9 +402,9 @@ export default function ManageRequestsPage() {
           <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl">
             <h3 className="text-base font-bold text-brand-900">Schedule Pickup</h3>
             <p className="mt-1 text-sm text-slate-500">
-              {pickupRequest.documents?.name} ({pickupRequest.tracking_code}) will be set to{" "}
-              <strong className="text-indigo-700">Ready for Pickup</strong>. Choose the date and time the
-              student should claim the document.
+              Choose the date and time the student should claim {pickupRequest.documents?.name} (
+              {pickupRequest.tracking_code}). The request stays <strong className="text-brand-700">Processing</strong> —
+              you will mark it <strong className="text-emerald-700">Completed</strong> once the document is handed over.
             </p>
             <div className="mt-4 space-y-3">
               <div>
@@ -399,8 +430,8 @@ export default function ManageRequestsPage() {
               <button className="btn-outline px-3 py-2 text-xs" onClick={() => setPickupRequest(null)}>
                 Cancel
               </button>
-              <button className="btn btn-primary" onClick={confirmPickup} disabled={updatingId !== null}>
-                {updatingId !== null ? "Saving…" : "Confirm Pickup"}
+              <button className="btn btn-primary" onClick={schedulePickup} disabled={updatingId !== null}>
+                {updatingId !== null ? "Saving…" : "Save Schedule"}
               </button>
             </div>
           </div>
