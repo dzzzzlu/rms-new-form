@@ -79,7 +79,7 @@ export default function ManageRequestsPage() {
     if (error) {
       const { data: fallback, error: fallbackError } = await supabase
         .from("requests")
-        .select(select.replace(", batch_id", ""))
+        .select(select.replace(", batch_id", "").replace(", pickup_at", ""))
         .order("created_at", { ascending: false });
       if (fallbackError) {
         toast.error("Failed to load requests.");
