@@ -146,9 +146,15 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
           .select("full_name")
           .eq("id", userId)
           .single();
+        const partner = allProfiles.find((p) => p.id === activePartner);
+        const partnerRole = partner?.role ?? "";
+        const msgLink = ["student", "registrar", "admin", "guidance"].includes(partnerRole)
+          ? `/${partnerRole}/messages`
+          : "";
         await supabase.from("notifications").insert({
           user_id: activePartner,
           message: `New message from ${me?.full_name ?? "a user"}.`,
+          link: msgLink,
         });
       } catch (notifErr) {
         console.error("Notification insert error:", notifErr);

@@ -61,6 +61,7 @@ export default function AdminApprovalsPage() {
     await supabase.from("notifications").insert({
       user_id: u.id,
       message: "Your account has been approved. You can now sign in and request documents.",
+      link: "/student/dashboard",
     });
 
     try {

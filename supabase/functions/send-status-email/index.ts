@@ -95,6 +95,7 @@ Deno.serve(async (req) => {
       user_id: record.user_id,
       request_id: record.id,
       message: `${document?.name ?? "Your document"} is now "${record.status}". ${statusNote}`,
+      link: `/student/requests/${record.id}`,
     });
 
     return new Response(JSON.stringify({ sent: true }), { status: 200 });

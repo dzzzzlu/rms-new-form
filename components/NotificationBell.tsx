@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 import { Bell, CheckCheck } from "lucide-react";
 
 type Notification = {
   id: number;
   message: string;
+  link: string;
   is_read: boolean;
   created_at: string;
   request_id: number | null;
@@ -14,6 +16,7 @@ type Notification = {
 
 export default function NotificationBell({ userId }: { userId: string }) {
   const supabase = createClient();
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -23,7 +26,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
   async function load() {
     const { data } = await supabase
       .from("notifications")
-      .select("id, message, is_read, created_at, request_id")
+      .select("id, message, link, is_read, created_at, request_id")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(20);
@@ -54,6 +57,17 @@ export default function NotificationBell({ userId }: { userId: string }) {
   async function markAsRead(id: number) {
     await supabase.from("notifications").update({ is_read: true }).eq("id", id);
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+  }
+
+  async function openNotification(n: Notification) {
+    setOpen(false);
+    if (n.link) {
+      await markAsRead(n.id);
+      router.push(n.link);
+      router.refresh();
+    } else {
+      await markAsRead(n.id);
+    }
   }
 
   async function markAllRead() {
@@ -110,7 +124,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
               notifications.map((n) => (
                 <button
                   key={n.id}
-                  onClick={() => { markAsRead(n.id); setOpen(false); }}
+                  onClick={() => openNotification(n)}
                   className={`w-full border-b border-slate-50 px-4 py-3 text-left transition hover:bg-brand-50 ${
                     !n.is_read ? "bg-brand-50/50" : ""
                   }`}

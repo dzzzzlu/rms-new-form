@@ -129,6 +129,7 @@ create table notifications (
   user_id uuid not null references profiles(id) on delete cascade,
   request_id bigint references requests(id) on delete set null,
   message text not null,
+  link text not null default '',
   is_read boolean not null default false,
   created_at timestamptz not null default now()
 );

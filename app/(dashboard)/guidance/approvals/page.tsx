@@ -66,6 +66,7 @@ export default function GuidanceApprovalsPage() {
         receiverId: r.user_id,
         message: msg,
         subject: `Good Moral Certificate — ${status}`,
+        link: `/student/requests/${r.id}`,
         html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Document Request Update</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your Good Moral Certificate request (<strong>${r.tracking_code}</strong>) has been <strong>${status.toLowerCase()}</strong> by the Guidance Department.</p><p>${msg}</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
       });
     }

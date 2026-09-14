@@ -108,6 +108,7 @@ export default function ManageRequestsPage() {
         receiverId: r.user_id,
         message: `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) status has been updated to "${status}".`,
         subject: `Request Status Update — ${status}`,
+        link: `/student/requests/${r.id}`,
         html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Document Request Update</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your <strong>${r.documents?.name ?? "document"}</strong> request (<strong>${r.tracking_code}</strong>) has been updated to <strong>${status}</strong>.</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
       });
     }

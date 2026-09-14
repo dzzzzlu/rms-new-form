@@ -89,6 +89,7 @@ export default function VerifyPaymentsPage() {
         receiverId: payment.requests.user_id,
         message: msg,
         subject: `Payment ${approve ? "Verified" : "Rejected"} — ${payment.requests.tracking_code}`,
+        link: "/student/payments",
         html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Payment ${approve ? "Verified" : "Rejected"}</h2><p>Hi ${payment.requests.profiles?.full_name ?? "there"},</p><p>${msg}</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
       });
     }

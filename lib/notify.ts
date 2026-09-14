@@ -11,12 +11,14 @@ export async function sendNotification({
   message,
   subject,
   html,
+  link = "",
 }: {
   senderId: string;
   receiverId: string;
   message: string;
   subject: string;
   html: string;
+  link?: string;
 }) {
   const supabase = createClient();
 
@@ -30,6 +32,7 @@ export async function sendNotification({
     await supabase.from("notifications").insert({
       user_id: receiverId,
       message,
+      link,
     });
   } catch (err) {
     console.error("In-app notification insert error:", err);
