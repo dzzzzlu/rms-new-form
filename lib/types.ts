@@ -69,6 +69,7 @@ export interface Payment {
   id: number;
   request_id: number;
   gcash_reference: string;
+  reference_number: string;
   proof_image: string;
   amount: number;
   status: PaymentStatus;

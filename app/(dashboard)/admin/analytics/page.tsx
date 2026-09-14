@@ -26,6 +26,7 @@ type PaymentRow = {
   id: number;
   amount: number;
   status: string;
+  reference_number?: string;
   created_at: string;
   verified_at: string | null;
   payment_method: string | null;
@@ -73,7 +74,7 @@ export default function AnalyticsPage() {
         supabase
           .from("payments")
           .select(
-            "id, amount, status, created_at, verified_at, payment_method, requests(tracking_code, documents(name), profiles(full_name))"
+            "id, amount, status, reference_number, created_at, verified_at, payment_method, requests(tracking_code, documents(name), profiles(full_name))"
           ),
       ]);
       setRows((reqData as unknown as Row[]) ?? []);
@@ -582,6 +583,63 @@ export default function AnalyticsPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="card mt-4">
+            <h3 className="mb-4 font-semibold text-brand-900">Payments Report — Receipt Numbers</h3>
+            {paymentsInPeriod.length === 0 ? (
+              <p className="text-sm text-slate-400">No verified payments in this period.</p>
+            ) : (
+              <div className="max-h-96 overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-white">
+                    <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
+                      <th className="py-2 pr-4">Date</th>
+                      <th className="py-2 pr-4">Receipt No.</th>
+                      <th className="py-2 pr-4">Requestor</th>
+                      <th className="py-2 pr-4">Document</th>
+                      <th className="py-2 pr-4">Method</th>
+                      <th className="py-2 pr-4">Tracking</th>
+                      <th className="py-2 text-right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paymentsInPeriod.map((p) => (
+                      <tr key={p.id} className="border-b border-slate-100">
+                        <td className="py-2 pr-4 text-slate-500">
+                          {new Date(p.verified_at ?? p.created_at).toLocaleDateString("en-PH")}
+                        </td>
+                        <td className="py-2 pr-4 font-mono font-semibold text-brand-700">
+                          {p.reference_number || "—"}
+                        </td>
+                        <td className="py-2 pr-4 text-slate-700">{p.requests?.profiles?.full_name ?? "—"}</td>
+                        <td className="py-2 pr-4 text-slate-500">{p.requests?.documents?.name ?? "—"}</td>
+                        <td className="py-2 pr-4 text-slate-500">
+                          {p.payment_method === "walk_in" ? "Walk-in" : "GCash"}
+                        </td>
+                        <td className="py-2 pr-4 font-mono text-slate-500">{p.requests?.tracking_code ?? "—"}</td>
+                        <td className="py-2 text-right font-semibold text-emerald-700">
+                          {fmtMoney(p.amount || 0)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-slate-200">
+                      <td className="py-2 pr-4 font-semibold text-brand-900">Total</td>
+                      <td />
+                      <td />
+                      <td />
+                      <td />
+                      <td />
+                      <td className="py-2 text-right font-bold text-brand-900">
+                        {fmtMoney(sectionTotal)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
           </div>
         </>
       )}

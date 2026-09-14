@@ -24,7 +24,7 @@ export default function VerifyPaymentsPage() {
     setLoading(true);
     const { data } = await supabase
       .from("payments")
-      .select("id, gcash_reference, proof_image, amount, status, payment_method, request_id, requests(tracking_code, user_id, profiles(full_name))")
+      .select("id, gcash_reference, reference_number, proof_image, amount, status, payment_method, request_id, requests(tracking_code, user_id, profiles(full_name))")
       .eq("status", "Pending")
       .order("created_at", { ascending: false });
     setPayments((data as unknown as PaymentRow[]) ?? []);
@@ -133,6 +133,9 @@ export default function VerifyPaymentsPage() {
               <div>
                 <p className="font-semibold text-brand-900">{p.requests?.profiles?.full_name}</p>
                 <p className="text-xs text-slate-500">{p.requests?.tracking_code}</p>
+                <p className="text-xs font-mono text-slate-500">
+                  Receipt: <span className="font-semibold text-brand-700">{p.reference_number || "—"}</span>
+                </p>
                 <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
                   p.payment_method === "walk_in"
                     ? "bg-amber-50 text-amber-700"

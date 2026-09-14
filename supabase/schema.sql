@@ -99,6 +99,7 @@ create table payments (
   id bigint generated always as identity primary key,
   request_id bigint not null references requests(id) on delete cascade,
   gcash_reference text not null,
+  reference_number text not null default '',
   proof_image text not null, -- storage object path
   amount numeric(10,2) not null,
   status payment_status not null default 'Pending',

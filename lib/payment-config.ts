@@ -16,8 +16,8 @@ export const PAYMENT_CONFIG = {
   gcashNumber: "0917 000 0000", // <-- put your real GCash number here
   gcashQrValue: "Regis Marie College Registrar - 0917 000 0000", // text encoded into the generated QR
 
-  // If true, renders /public/gcash-qr.png instead of generating a QR from
-  // gcashQrValue above. Use this if your school already has an official
-  // GCash QR image (e.g. exported from the GCash app's "Receive Money" screen).
-  USE_QR_IMAGE: false,
+  // Renders /public/gcash-qr.jpg instead of generating a QR from gcashQrValue
+  // above. Use this if your school already has an official GCash QR image
+  // (e.g. exported from the GCash app's "Receive Money" screen).
+  USE_QR_IMAGE: true,
 };
