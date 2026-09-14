@@ -8,12 +8,13 @@ const STATUS_LINKS: Record<string, string> = {
   "Ready for Pickup": "/registrar/requests",
   Completed: "/registrar/requests",
   Rejected: "/registrar/requests",
+  Cancelled: "/registrar/requests",
 };
 
 export default async function RegistrarDashboard() {
   const supabase = createClient();
 
-  const statuses = ["Pending", "Payment Verification", "Processing", "Ready for Pickup", "Completed", "Rejected"] as const;
+  const statuses = ["Pending", "Payment Verification", "Processing", "Ready for Pickup", "Completed", "Rejected", "Cancelled"] as const;
   const counts = await Promise.all(
     statuses.map((s) =>
       supabase.from("requests").select("*", { count: "exact", head: true }).eq("status", s)

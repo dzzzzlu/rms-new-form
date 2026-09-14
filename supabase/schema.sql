@@ -7,7 +7,7 @@
 create type user_role as enum ('student', 'registrar', 'admin', 'guidance');
 create type request_status as enum (
   'Pending', 'Payment Verification', 'Processing',
-  'Ready for Pickup', 'Completed', 'Rejected'
+  'Ready for Pickup', 'Completed', 'Rejected', 'Cancelled'
 );
 create type payment_status as enum ('Pending', 'Verified', 'Rejected');
 

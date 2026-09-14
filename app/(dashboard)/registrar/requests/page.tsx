@@ -15,18 +15,31 @@ const STATUSES = [
   "Ready for Pickup",
   "Completed",
   "Rejected",
+  "Cancelled",
 ] as const;
 
 const RELEASE_STATUSES = ["Ready for Pickup", "Completed"];
 
-function nextStatuses(current: string): readonly string[] {
+function nextStatuses(current: string, isWalkIn = false): readonly string[] {
+  if (isWalkIn) {
+    if (current === "Pending" || current === "Payment Verification") return ["Processing", "Cancelled"];
+    if (current === "Processing") return ["Completed", "Cancelled"];
+    if (current === "Completed") return ["Completed"] as const;
+    if (current === "Cancelled" || current === "Rejected") return ["Cancelled"] as const;
+    return ["Completed", "Cancelled"];
+  }
   if (current === "Pending") return ["Payment Verification", "Processing", "Rejected"];
   if (current === "Payment Verification") return ["Processing", "Rejected"];
   if (current === "Processing") return ["Ready for Pickup", "Completed", "Rejected"];
   if (current === "Ready for Pickup") return ["Completed", "Rejected"];
   if (current === "Completed") return ["Completed"] as const;
   if (current === "Rejected") return ["Rejected"] as const;
+  if (current === "Cancelled") return ["Cancelled"] as const;
   return STATUSES;
+}
+
+function isWalkIn(r: RequestWithRelations): boolean {
+  return Array.isArray(r.payments) && r.payments.some((p) => p.payment_method === "walk_in");
 }
 
 function formatPickup(d: Date) {
@@ -71,7 +84,7 @@ export default function ManageRequestsPage() {
   async function load() {
     setLoading(true);
     const select =
-      "id, tracking_code, batch_id, purpose, copies, status, pickup_at, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), profiles(full_name, student_number, course, contact_number, email)";
+      "id, tracking_code, batch_id, purpose, copies, status, pickup_at, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), payments(payment_method), profiles(full_name, student_number, course, contact_number, email)";
     let { data, error } = await supabase
       .from("requests")
       .select(select)
@@ -283,6 +296,11 @@ export default function ManageRequestsPage() {
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <p className="font-semibold text-brand-900">{r.documents?.name}</p>
+                          {isWalkIn(r) && (
+                            <span className="mt-0.5 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                              Walk-in
+                            </span>
+                          )}
                           <p className="text-xs text-slate-500">
                             {r.tracking_code} · copied {r.copies}× ·{" "}
                             {new Date(r.created_at).toLocaleDateString()}
@@ -294,7 +312,7 @@ export default function ManageRequestsPage() {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          {nextStatuses(r.status).includes("Ready for Pickup") && r.status !== "Ready for Pickup" && (
+                          {nextStatuses(r.status, isWalkIn(r)).includes("Ready for Pickup") && r.status !== "Ready for Pickup" && (
                             <button
                               type="button"
                               onClick={() => handleStatusChange(r, "Ready for Pickup")}
@@ -307,10 +325,10 @@ export default function ManageRequestsPage() {
                           <select
                             className="input w-auto"
                             value={r.status}
-                            disabled={updatingId === r.id || (r.status as string) === "Completed" || (r.status as string) === "Rejected"}
+                            disabled={updatingId === r.id || (r.status as string) === "Completed" || (r.status as string) === "Rejected" || (r.status as string) === "Cancelled"}
                             onChange={(e) => handleStatusChange(r, e.target.value)}
                           >
-                            {nextStatuses(r.status).map((s) => (
+                            {nextStatuses(r.status, isWalkIn(r)).map((s) => (
                               <option key={s}>{s}</option>
                             ))}
                           </select>

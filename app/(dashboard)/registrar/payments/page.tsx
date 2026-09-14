@@ -26,6 +26,7 @@ export default function VerifyPaymentsPage() {
       .from("payments")
       .select("id, gcash_reference, reference_number, proof_image, amount, status, payment_method, request_id, requests(tracking_code, user_id, profiles(full_name))")
       .eq("status", "Pending")
+      .neq("payment_method", "walk_in")
       .order("created_at", { ascending: false });
     setPayments((data as unknown as PaymentRow[]) ?? []);
 

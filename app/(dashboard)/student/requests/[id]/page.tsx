@@ -11,6 +11,7 @@ const STATUS_COLOR: Record<string, string> = {
   "Ready for Pickup": "bg-indigo-50 text-indigo-700",
   Completed: "bg-emerald-50 text-emerald-700",
   Rejected: "bg-red-50 text-red-700",
+  Cancelled: "bg-slate-100 text-slate-600",
 };
 
 export default async function RequestDetailPage({ params }: { params: { id: string } }) {

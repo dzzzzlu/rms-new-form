@@ -141,8 +141,9 @@ export default function NewRequestPage() {
           reference_number: refNum,
           proof_image: "",
           amount: doc.fee * copies,
-          status: "Pending",
+          status: "Verified",
           payment_method: "walk_in",
+          verified_at: new Date().toISOString(),
         });
 
         if (payErr) {
@@ -150,7 +151,8 @@ export default function NewRequestPage() {
           return setError(payErr.message);
         }
 
-        await supabase.from("requests").update({ status: "Payment Verification" }).eq("id", request.id);
+        // Walk-in is a face-to-face transaction at the registrar's office,
+        // so the request skips "Payment Verification" and stays pending.
       }
     }
 
@@ -334,7 +336,7 @@ export default function NewRequestPage() {
         {paymentMethod === "walk_in" && (
           <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
             <p className="font-medium">Walk-in Payment</p>
-            <p className="mt-1">Pay <strong>₱{amount.toFixed(2)}</strong> at the registrar's office. Your request will be processed once payment is confirmed.</p>
+            <p className="mt-1">Pay <strong>₱{amount.toFixed(2)}</strong> in person at the registrar's office. You will give the payment and collect the documents on the same transaction.</p>
           </div>
         )}
 

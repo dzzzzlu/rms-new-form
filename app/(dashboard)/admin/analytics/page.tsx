@@ -52,6 +52,7 @@ const STATUS_COLORS: Record<string, string> = {
   "ready for pickup": "#10b981",
   completed: "#22c55e",
   rejected: "#ef4444",
+  cancelled: "#64748b",
 };
 
 const CHART_COLORS = ["#1565C0", "#0D47A1", "#42A5F5", "#1E88E5", "#1257B8", "#90CAF9"];

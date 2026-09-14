@@ -21,6 +21,7 @@ const STATUS_MESSAGE: Record<string, string> = {
   "Ready for Pickup": "Your document is ready! Please visit the registrar's office to claim it.",
   Completed: "Your request has been completed. Thank you!",
   Rejected: "There was an issue with your request. Please check your payment details or contact the registrar's office.",
+  Cancelled: "Your request has been cancelled. Please contact the registrar's office if you have any questions.",
 };
 
 Deno.serve(async (req) => {

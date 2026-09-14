@@ -6,7 +6,8 @@ export type RequestStatus =
   | "Processing"
   | "Ready for Pickup"
   | "Completed"
-  | "Rejected";
+  | "Rejected"
+  | "Cancelled";
 
 export type PaymentStatus = "Pending" | "Verified" | "Rejected";
 
@@ -56,6 +57,7 @@ export interface Request {
 
 export interface RequestWithRelations extends Request {
   documents: { name: string } | null;
+  payments?: { payment_method: string | null }[];
   profiles: {
     full_name: string;
     student_number: string | null;
