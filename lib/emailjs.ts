@@ -1,7 +1,7 @@
 const EMAILJS_API = "https://api.emailjs.com/api/v1.0/email/send";
 
 const SERVICE_ID = "service_nhk5a1v";
-const TEMPLATE_ID = "template_ycyru5k";
+const TEMPLATE_ID = "template_wq8k3ef";
 const PUBLIC_KEY = "UYVOvfUlIE-yUdJR1";
 
 export async function sendEmailJS({

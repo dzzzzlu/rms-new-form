@@ -2,7 +2,7 @@ import emailjs from "@emailjs/browser";
 import { createClient } from "@/lib/supabase/client";
 
 const SERVICE_ID = "service_nhk5a1v";
-const TEMPLATE_ID = "template_ycyru5k";
+const TEMPLATE_ID = "template_wq8k3ef";
 const PUBLIC_KEY = "UYVOvfUlIE-yUdJR1";
 
 export async function sendNotification({
