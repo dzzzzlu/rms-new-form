@@ -13,7 +13,7 @@
  */
 export const PAYMENT_CONFIG = {
   gcashName: "Regis Marie College Registrar", // account holder name shown to students
-  gcashNumber: "0917 000 0000", // <-- put your real GCash number here
+  gcashNumber: "+63 981 287 5500", // <-- real GCash number
   gcashQrValue: "Regis Marie College Registrar - 0917 000 0000", // text encoded into the generated QR
 
   // Renders /public/gcash-qr.jpg instead of generating a QR from gcashQrValue
