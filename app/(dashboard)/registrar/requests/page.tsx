@@ -289,16 +289,28 @@ export default function ManageRequestsPage() {
                             </p>
                           )}
                         </div>
-                        <select
-                          className="input w-auto"
-                          value={r.status}
-                          disabled={updatingId === r.id || (r.status as string) === "Completed" || (r.status as string) === "Rejected"}
-                          onChange={(e) => handleStatusChange(r, e.target.value)}
-                        >
-                          {nextStatuses(r.status).map((s) => (
-                            <option key={s}>{s}</option>
-                          ))}
-                        </select>
+                        <div className="flex items-center gap-2">
+                          {nextStatuses(r.status).includes("Ready for Pickup") && r.status !== "Ready for Pickup" && (
+                            <button
+                              type="button"
+                              onClick={() => handleStatusChange(r, "Ready for Pickup")}
+                              className="btn-outline px-3 py-2 text-xs"
+                              disabled={updatingId !== null}
+                            >
+                              Schedule Pickup
+                            </button>
+                          )}
+                          <select
+                            className="input w-auto"
+                            value={r.status}
+                            disabled={updatingId === r.id || (r.status as string) === "Completed" || (r.status as string) === "Rejected"}
+                            onChange={(e) => handleStatusChange(r, e.target.value)}
+                          >
+                            {nextStatuses(r.status).map((s) => (
+                              <option key={s}>{s}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
 
                       {r.documents?.name === "Good Moral Certificate" && (
@@ -362,7 +374,7 @@ export default function ManageRequestsPage() {
               </div>
             </div>
             <div className="mt-5 flex justify-end gap-2">
-              <button className="btn btn-ghost" onClick={() => setPickupRequest(null)}>
+              <button className="btn-outline px-3 py-2 text-xs" onClick={() => setPickupRequest(null)}>
                 Cancel
               </button>
               <button className="btn btn-primary" onClick={confirmPickup} disabled={updatingId !== null}>
