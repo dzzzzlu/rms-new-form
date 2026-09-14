@@ -124,8 +124,12 @@ export default function ManageRequestsPage() {
       }
     }
 
-    if (!skipConfirm && !window.confirm(`Change "${r.documents?.name}" (${r.tracking_code}) to "${status}"?`)) {
-      return;
+    if (!skipConfirm) {
+      const confirmMsg =
+        status === "Completed"
+          ? `Mark "${r.documents?.name}" (${r.tracking_code}) as Completed? Confirm you have already handed the document to the student.`
+          : `Change "${r.documents?.name}" (${r.tracking_code}) to "${status}"?`;
+      if (!window.confirm(confirmMsg)) return;
     }
 
     setUpdatingId(r.id);
