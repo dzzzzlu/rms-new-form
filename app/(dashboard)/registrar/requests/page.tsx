@@ -114,7 +114,8 @@ export default function ManageRequestsPage() {
     r: RequestWithRelations,
     status: string,
     pickupAt?: string | null,
-    scheduleRemarks?: string
+    scheduleRemarks?: string,
+    skipConfirm?: boolean
   ) {
     if (RELEASE_STATUSES.includes(status)) {
       if (r.documents?.name === "Good Moral Certificate" && r.guidance_status !== "Approved") {
@@ -123,7 +124,7 @@ export default function ManageRequestsPage() {
       }
     }
 
-    if (!window.confirm(`Change "${r.documents?.name}" (${r.tracking_code}) to "${status}"?`)) {
+    if (!skipConfirm && !window.confirm(`Change "${r.documents?.name}" (${r.tracking_code}) to "${status}"?`)) {
       return;
     }
 
@@ -131,7 +132,12 @@ export default function ManageRequestsPage() {
     const { data: me } = await supabase.auth.getUser();
     const patch: Record<string, unknown> = { status };
     if (status === "Ready for Pickup") patch.pickup_at = pickupAt ?? null;
-    const { data: updated, error } = await supabase.from("requests").update(patch).eq("id", r.id).select();
+    let { data: updated, error } = await supabase.from("requests").update(patch).eq("id", r.id).select();
+    if (error && status === "Ready for Pickup") {
+      const retry = await supabase.from("requests").update({ status }).eq("id", r.id).select();
+      updated = retry.data;
+      error = retry.error;
+    }
     if (error || !updated || updated.length === 0) {
       toast.error("Failed to update status. Make sure your account has the correct role.");
       setUpdatingId(null);
@@ -186,7 +192,7 @@ export default function ManageRequestsPage() {
       return;
     }
     const label = formatPickup(pickupAt);
-    await updateStatus(r, "Ready for Pickup", pickupAt.toISOString(), `Pickup scheduled on ${label}.`);
+    await updateStatus(r, "Ready for Pickup", pickupAt.toISOString(), `Pickup scheduled on ${label}.`, true);
   }
 
   const visible = requests.filter((r) => {
