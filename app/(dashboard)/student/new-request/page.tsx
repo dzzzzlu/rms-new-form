@@ -300,7 +300,7 @@ export default function NewRequestPage() {
             <div className="flex flex-col items-center gap-3 rounded-lg border border-brand-100 bg-white px-4 py-5 text-center">
               <p className="text-sm font-semibold text-brand-900">Scan to pay via GCash</p>
               {PAYMENT_CONFIG.USE_QR_IMAGE ? (
-                <img src="/gcash-qr.jpg" alt="GCash QR code" className="h-40 w-40 rounded-lg border" />
+                <img src="/gcash-qr.jpg" alt="GCash QR code" className="w-40 h-auto rounded-lg border" />
               ) : (
                 <QRCodeSVG value={PAYMENT_CONFIG.gcashQrValue} size={160} />
               )}
