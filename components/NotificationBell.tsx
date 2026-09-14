@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
-import { Bell, CheckCheck } from "lucide-react";
+import { Bell, CheckCheck, ChevronRight } from "lucide-react";
 
 type Notification = {
   id: number;
@@ -16,7 +16,6 @@ type Notification = {
 
 export default function NotificationBell({ userId }: { userId: string }) {
   const supabase = createClient();
-  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -59,15 +58,9 @@ export default function NotificationBell({ userId }: { userId: string }) {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
   }
 
-  async function openNotification(n: Notification) {
+  function openNotification(n: Notification) {
     setOpen(false);
-    if (n.link) {
-      await markAsRead(n.id);
-      router.push(n.link);
-      router.refresh();
-    } else {
-      await markAsRead(n.id);
-    }
+    if (!n.is_read) markAsRead(n.id);
   }
 
   async function markAllRead() {
@@ -107,7 +100,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-xl border border-brand-100 bg-white shadow-lg">
+        <div className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-1.5rem)] rounded-xl border border-brand-100 bg-white shadow-lg">
           <div className="flex items-center justify-between border-b border-brand-100 px-4 py-3">
             <h3 className="text-sm font-semibold text-brand-900">Notifications</h3>
             {unreadCount > 0 && (
@@ -117,24 +110,45 @@ export default function NotificationBell({ userId }: { userId: string }) {
               </button>
             )}
           </div>
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-80 overflow-y-auto sm:max-h-96">
             {notifications.length === 0 ? (
               <p className="px-4 py-6 text-center text-sm text-slate-400">No notifications yet.</p>
             ) : (
-              notifications.map((n) => (
-                <button
-                  key={n.id}
-                  onClick={() => openNotification(n)}
-                  className={`w-full border-b border-slate-50 px-4 py-3 text-left transition hover:bg-brand-50 ${
-                    !n.is_read ? "bg-brand-50/50" : ""
-                  }`}
-                >
-                  <p className={`text-sm ${!n.is_read ? "font-medium text-brand-900" : "text-slate-600"}`}>
-                    {n.message}
-                  </p>
-                  <p className="mt-0.5 text-xs text-slate-400">{timeAgo(n.created_at)}</p>
-                </button>
-              ))
+              notifications.map((n) =>
+                n.link ? (
+                  <Link
+                    key={n.id}
+                    href={n.link}
+                    onClick={() => openNotification(n)}
+                    className={`flex w-full items-center justify-between gap-2 border-b border-slate-50 px-4 py-3 text-left transition hover:bg-brand-50 ${
+                      !n.is_read ? "bg-brand-50/50" : ""
+                    }`}
+                  >
+                    <span className="min-w-0">
+                      <span className={`block text-sm ${!n.is_read ? "font-medium text-brand-900" : "text-slate-600"}`}>
+                        {n.message}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-slate-400">{timeAgo(n.created_at)}</span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-brand-300" />
+                  </Link>
+                ) : (
+                  <button
+                    key={n.id}
+                    onClick={() => openNotification(n)}
+                    className={`flex w-full items-center justify-between gap-2 border-b border-slate-50 px-4 py-3 text-left transition hover:bg-brand-50 ${
+                      !n.is_read ? "bg-brand-50/50" : ""
+                    }`}
+                  >
+                    <span className="min-w-0">
+                      <span className={`block text-sm ${!n.is_read ? "font-medium text-brand-900" : "text-slate-600"}`}>
+                        {n.message}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-slate-400">{timeAgo(n.created_at)}</span>
+                    </span>
+                  </button>
+                )
+              )
             )}
           </div>
         </div>
