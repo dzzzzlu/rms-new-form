@@ -22,7 +22,7 @@ const RELEASE_STATUSES = ["Ready for Pickup", "Completed"];
 
 function nextStatuses(current: string, isWalkIn = false): readonly string[] {
   if (isWalkIn) {
-    if (current === "Pending" || current === "Payment Verification") return ["Processing", "Cancelled"];
+    if (current === "Pending" || current === "Payment Verification") return ["Processing", "Completed", "Cancelled"];
     if (current === "Processing") return ["Completed", "Cancelled"];
     if (current === "Completed") return ["Completed"] as const;
     if (current === "Cancelled" || current === "Rejected") return ["Cancelled"] as const;
