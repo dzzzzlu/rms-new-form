@@ -133,7 +133,7 @@ export default function SampleTemplates({ docName, docDescription }: SampleTempl
             <div className="rounded-lg border-2 border-double border-slate-700 bg-white p-6">
               <div className="mb-4 flex items-center justify-center gap-3">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white">
-                  <Image src="/logo.png" alt="Regis Marie College" width={48} height={48} />
+                  <Image src="/rmclogo.jpg" alt="Regis Marie College" width={48} height={48} />
                 </div>
                 <div>
                   <p className="text-lg font-bold uppercase tracking-widest text-slate-900">

@@ -312,7 +312,7 @@ function certificate(doc: PrintDoc) {
         <div className="print-area border-2 border-double border-slate-800 p-6 text-slate-900">
           <div className="flex items-center justify-center gap-3 text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Regis Marie College" className="h-14 w-14 rounded-full" />
+            <img src="/rmclogo.jpg" alt="Regis Marie College" className="h-14 w-14 rounded-md" />
             <div>
               <h1 className="text-2xl font-bold uppercase tracking-wide">Regis Marie College</h1>
               <p className="text-xs font-semibold uppercase tracking-widest">Report of Grades</p>
@@ -391,7 +391,7 @@ function certificate(doc: PrintDoc) {
         <div className="print-area border-2 border-double border-slate-800 p-8 text-center text-slate-900">
           <div className="mb-4 flex items-center justify-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Regis Marie College" className="h-16 w-16 rounded-full" />
+            <img src="/rmclogo.jpg" alt="Regis Marie College" className="h-16 w-16 rounded-md" />
             <div>
               <h1 className="text-2xl font-bold uppercase tracking-widest">Regis Marie College</h1>
               <p className="text-xs text-slate-600">Document Request System · Official Document</p>

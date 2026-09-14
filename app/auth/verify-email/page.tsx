@@ -112,7 +112,7 @@ function VerifyEmailForm() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100 p-4">
       <div className="card max-w-md w-full text-center space-y-6">
         <div className="flex flex-col items-center">
-          <img src="/logo.png" alt="Regis Marie College" className="h-16 mb-3" />
+          <img src="/rmclogo.jpg" alt="Regis Marie College" className="h-16 mb-3" />
           <h1 className="text-2xl font-bold text-slate-800">Verify Your Email</h1>
           <p className="text-sm text-slate-500 mt-1">
             We sent a 6-digit code to <strong className="text-slate-700">{email}</strong>

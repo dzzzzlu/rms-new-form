@@ -57,7 +57,7 @@ function NewPasswordForm() {
         <div className="rounded-2xl bg-white p-8 shadow-2xl">
           <div className="mb-6 text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50">
-              <Image src="/logo.png" alt="Regis Marie College" width={40} height={40} className="rounded-lg" />
+              <Image src="/rmclogo.jpg" alt="Regis Marie College" width={40} height={40} className="rounded-lg" />
             </div>
             <h1 className="text-xl font-bold text-brand-900">Set New Password</h1>
             <p className="mt-1 text-sm text-slate-500">Choose a strong password for your account.</p>
