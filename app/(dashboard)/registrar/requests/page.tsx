@@ -29,6 +29,18 @@ function nextStatuses(current: string): readonly string[] {
   return STATUSES;
 }
 
+function formatPickup(d: Date) {
+  return d.toLocaleString("en-PH", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 function toPrintDoc(r: RequestWithRelations): PrintDoc {
   return {
     docName: r.documents?.name ?? "Document",
@@ -52,11 +64,14 @@ export default function ManageRequestsPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [pickupRequest, setPickupRequest] = useState<RequestWithRelations | null>(null);
+  const [pickupDate, setPickupDate] = useState("");
+  const [pickupTime, setPickupTime] = useState("");
 
   async function load() {
     setLoading(true);
     const select =
-      "id, tracking_code, batch_id, purpose, copies, status, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), profiles(full_name, student_number, course, contact_number, email)";
+      "id, tracking_code, batch_id, purpose, copies, status, pickup_at, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), profiles(full_name, student_number, course, contact_number, email)";
     let { data, error } = await supabase
       .from("requests")
       .select(select)
@@ -80,7 +95,27 @@ export default function ManageRequestsPage() {
     load();
   }, []);
 
-  async function updateStatus(r: RequestWithRelations, status: string) {
+  function handleStatusChange(r: RequestWithRelations, status: string) {
+    if (status === "Ready for Pickup") {
+      if (r.documents?.name === "Good Moral Certificate" && r.guidance_status !== "Approved") {
+        toast.error("This Good Moral request hasn't been approved by the Guidance Department yet.");
+        return;
+      }
+      if (r.status === "Ready for Pickup") return;
+      setPickupDate("");
+      setPickupTime("");
+      setPickupRequest(r);
+      return;
+    }
+    updateStatus(r, status);
+  }
+
+  async function updateStatus(
+    r: RequestWithRelations,
+    status: string,
+    pickupAt?: string | null,
+    scheduleRemarks?: string
+  ) {
     if (RELEASE_STATUSES.includes(status)) {
       if (r.documents?.name === "Good Moral Certificate" && r.guidance_status !== "Approved") {
         toast.error("This Good Moral request hasn't been approved by the Guidance Department yet.");
@@ -94,28 +129,64 @@ export default function ManageRequestsPage() {
 
     setUpdatingId(r.id);
     const { data: me } = await supabase.auth.getUser();
-    const { data: updated, error } = await supabase.from("requests").update({ status }).eq("id", r.id).select();
+    const patch: Record<string, unknown> = { status };
+    if (status === "Ready for Pickup") patch.pickup_at = pickupAt ?? null;
+    const { data: updated, error } = await supabase.from("requests").update(patch).eq("id", r.id).select();
     if (error || !updated || updated.length === 0) {
       toast.error("Failed to update status. Make sure your account has the correct role.");
       setUpdatingId(null);
       return;
     }
-    await supabase.from("status_history").insert({ request_id: r.id, status });
+    await supabase.from("status_history").insert({
+      request_id: r.id,
+      status,
+      remarks: status === "Ready for Pickup" ? scheduleRemarks ?? null : null,
+    });
 
     if (r.user_id && me?.user?.id) {
+      const pickupLabel =
+        status === "Ready for Pickup" && pickupAt ? formatPickup(new Date(pickupAt)) : "";
+      const message =
+        status === "Ready for Pickup"
+          ? `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) is ready for pickup. Please claim it on ${pickupLabel}.`
+          : `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) status has been updated to "${status}".`;
       sendNotification({
         senderId: me.user.id,
         receiverId: r.user_id,
-        message: `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) status has been updated to "${status}".`,
-        subject: `Request Status Update — ${status}`,
+        message,
+        subject:
+          status === "Ready for Pickup"
+            ? `Ready for Pickup — ${pickupLabel}`
+            : `Request Status Update — ${status}`,
         link: `/student/requests/${r.id}`,
-        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Document Request Update</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your <strong>${r.documents?.name ?? "document"}</strong> request (<strong>${r.tracking_code}</strong>) has been updated to <strong>${status}</strong>.</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Document Request Update</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p>${
+          status === "Ready for Pickup"
+            ? `<p>Your <strong>${r.documents?.name ?? "document"}</strong> request (<strong>${r.tracking_code}</strong>) is <strong style="color:#4F46E5;">ready for pickup</strong>.</p><p style="background:#EEF2FF;padding:12px;border-radius:8px;"><strong>Pickup schedule:</strong><br/>${pickupLabel}</p>`
+            : `<p>Your <strong>${r.documents?.name ?? "document"}</strong> request (<strong>${r.tracking_code}</strong>) has been updated to <strong>${status}</strong>.</p>`
+        }<p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
       });
     }
 
     toast.success(`Status changed to "${status}".`);
     setUpdatingId(null);
+    setPickupRequest(null);
     load();
+  }
+
+  async function confirmPickup() {
+    const r = pickupRequest;
+    if (!r) return;
+    if (!pickupDate || !pickupTime) {
+      toast.error("Please set the pickup date and time.");
+      return;
+    }
+    const pickupAt = new Date(`${pickupDate}T${pickupTime}`);
+    if (isNaN(pickupAt.getTime()) || pickupAt.getTime() < Date.now()) {
+      toast.error("Pickup schedule must be in the future.");
+      return;
+    }
+    const label = formatPickup(pickupAt);
+    await updateStatus(r, "Ready for Pickup", pickupAt.toISOString(), `Pickup scheduled on ${label}.`);
   }
 
   const visible = requests.filter((r) => {
@@ -206,12 +277,17 @@ export default function ManageRequestsPage() {
                             {r.tracking_code} · copied {r.copies}× ·{" "}
                             {new Date(r.created_at).toLocaleDateString()}
                           </p>
+                          {r.status === "Ready for Pickup" && r.pickup_at && (
+                            <p className="text-xs font-medium text-indigo-700">
+                              Pickup scheduled: {formatPickup(new Date(r.pickup_at))}
+                            </p>
+                          )}
                         </div>
                         <select
                           className="input w-auto"
                           value={r.status}
                           disabled={updatingId === r.id || (r.status as string) === "Completed" || (r.status as string) === "Rejected"}
-                          onChange={(e) => updateStatus(r, e.target.value)}
+                          onChange={(e) => handleStatusChange(r, e.target.value)}
                         >
                           {nextStatuses(r.status).map((s) => (
                             <option key={s}>{s}</option>
@@ -247,6 +323,47 @@ export default function ManageRequestsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {pickupRequest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl">
+            <h3 className="text-base font-bold text-brand-900">Schedule Pickup</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              {pickupRequest.documents?.name} ({pickupRequest.tracking_code}) will be set to{" "}
+              <strong className="text-indigo-700">Ready for Pickup</strong>. Choose the date and time the
+              student should claim the document.
+            </p>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="label">Pickup date</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={pickupDate}
+                  onChange={(e) => setPickupDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="label">Pickup time</label>
+                <input
+                  type="time"
+                  className="input"
+                  value={pickupTime}
+                  onChange={(e) => setPickupTime(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button className="btn btn-ghost" onClick={() => setPickupRequest(null)}>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={confirmPickup} disabled={updatingId !== null}>
+                {updatingId !== null ? "Saving…" : "Confirm Pickup"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -89,7 +89,8 @@ create table requests (
   remarks text,
   batch_id uuid,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  pickup_at timestamptz
 );
 
 -- ------------------------------------------------------------

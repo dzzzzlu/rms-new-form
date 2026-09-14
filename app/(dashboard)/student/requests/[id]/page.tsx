@@ -23,7 +23,7 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
 
   const { data: request } = await supabase
     .from("requests")
-    .select("id, tracking_code, purpose, copies, status, guidance_status, clearance_status, class_list, remarks, created_at, updated_at, documents!inner(name, fee, processing_days)")
+    .select("id, tracking_code, purpose, copies, status, pickup_at, guidance_status, clearance_status, class_list, remarks, created_at, updated_at, documents!inner(name, fee, processing_days)")
     .eq("id", requestId)
     .eq("user_id", profile.id)
     .single();
@@ -117,6 +117,32 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
           <div>
             <p className="text-sm text-slate-500">Class List</p>
             <pre className="whitespace-pre-line rounded bg-slate-50 p-2 text-sm text-slate-700">{request.class_list}</pre>
+          </div>
+        )}
+
+        {request.status === "Ready for Pickup" && request.pickup_at && (
+          <div className="rounded-lg bg-indigo-50 px-4 py-3 text-sm text-indigo-800">
+            <p className="font-semibold">Ready for Pickup</p>
+            <p>
+              Your document is available for claiming. Please pick it up on{" "}
+              <strong>
+                {new Date(request.pickup_at).toLocaleDateString("en-PH", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </strong>{" "}
+              at{" "}
+              <strong>
+                {new Date(request.pickup_at).toLocaleTimeString("en-PH", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
+              </strong>
+              .
+            </p>
           </div>
         )}
 

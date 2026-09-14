@@ -1,0 +1,1 @@
+alter table requests add column if not exists pickup_at timestamptz;

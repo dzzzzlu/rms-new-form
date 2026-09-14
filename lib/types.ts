@@ -51,6 +51,7 @@ export interface Request {
   clearance_status: ApprovalStatus | null;
   created_at: string;
   updated_at: string;
+  pickup_at: string | null;
 }
 
 export interface RequestWithRelations extends Request {

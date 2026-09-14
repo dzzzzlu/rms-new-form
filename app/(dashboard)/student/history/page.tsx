@@ -19,6 +19,7 @@ type HistoryRequest = {
   purpose: string | null;
   copies: number;
   status: RequestStatus;
+  pickup_at: string | null;
   created_at: string;
   documents: { name: string; fee: number } | null;
 };
@@ -30,7 +31,7 @@ export default async function HistoryPage() {
 
   const { data: requests } = await supabase
     .from("requests")
-    .select("id, tracking_code, purpose, copies, status, created_at, documents(name, fee)")
+    .select("id, tracking_code, purpose, copies, status, pickup_at, created_at, documents(name, fee)")
     .eq("user_id", profile.id)
     .order("created_at", { ascending: false });
 
@@ -59,6 +60,20 @@ export default async function HistoryPage() {
                   {new Date(r.created_at).toLocaleDateString()}
                 </p>
                 {r.purpose && <p className="mt-1 text-sm text-slate-600">Purpose: {r.purpose}</p>}
+                {r.status === "Ready for Pickup" && r.pickup_at && (
+                  <p className="mt-1 text-xs font-medium text-indigo-700">
+                    Pickup:{" "}
+                    {new Date(r.pickup_at).toLocaleString("en-PH", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
+                  </p>
+                )}
               </div>
               <span className={`badge ${STATUS_COLOR[r.status] ?? "bg-slate-100 text-slate-700"}`}>
                 {r.status}
