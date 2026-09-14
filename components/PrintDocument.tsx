@@ -98,6 +98,8 @@ function certificate(doc: PrintDoc) {
       return (
         <div className="print-area border-2 border-double border-slate-800 p-6 text-slate-900">
           <div className="text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/rmclogo.jpg" alt="Regis Marie College" className="mx-auto h-14 w-14 rounded-md" />
             <h1 className="text-2xl font-bold uppercase tracking-wide">Regis Marie College</h1>
             <p className="text-[11px]">Sucat, Parañaque City • www.regismariecollege.com • Tel No.: 8671-01-99</p>
             <div className="mx-auto mt-2 w-full border-y border-slate-800 py-1">
@@ -163,6 +165,8 @@ function certificate(doc: PrintDoc) {
       return (
         <div className="print-area border-2 border-double border-slate-800 p-6 text-slate-900">
           <div className="text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/rmclogo.jpg" alt="Regis Marie College" className="mx-auto h-14 w-14 rounded-md" />
             <h1 className="text-2xl font-bold uppercase tracking-wide">Regis Marie College</h1>
             <p className="text-[10px]">
               #7072 Dollar Lane St., Villanueva Village, Brgy. San Dionisio, Sucat,
@@ -234,6 +238,8 @@ function certificate(doc: PrintDoc) {
       return (
         <div className="print-area border-2 border-double border-slate-800 p-6 text-slate-900">
           <div className="border-b-2 border-slate-800 pb-3 text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/rmclogo.jpg" alt="Regis Marie College" className="mx-auto h-14 w-14 rounded-md" />
             <h1 className="text-xl font-bold uppercase tracking-wide">Regis Marie College</h1>
             <p className="text-[10px]">7108 LIRE LANE VILLANUEVA VILLAGE PARAÑAQUE CITY</p>
             <p className="text-[10px]">CONTACT NO.: (02) 8671-01-99 / 0939-266-9493</p>
