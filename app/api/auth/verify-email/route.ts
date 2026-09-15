@@ -56,29 +56,44 @@ export async function POST(req: Request) {
       if (!authUser) {
         return NextResponse.json({ error: "No account found for this email." }, { status: 400 });
       }
-      const meta = authUser.user_metadata ?? {};
-      const { data: created, error: insertErr } = await supabase
+
+      // The profile may already exist for this auth user id even if the email
+      // lookup above missed it — reuse it instead of inserting a duplicate.
+      const { data: existingById } = await supabase
         .from("profiles")
-        .insert({
-          id: authUser.id,
-          full_name: meta.full_name ?? authUser.email ?? email,
-          email: authUser.email ?? email,
-          role: "student",
-          student_number: meta.student_number ?? null,
-          course: meta.course ?? null,
-          contact_number: meta.contact_number ?? null,
-          is_alumni: meta.is_alumni ?? false,
-          school_year: meta.school_year ?? null,
-          is_active: false,
-          email_verified: false,
-        })
         .select("id, full_name, is_active, email_verified")
-        .single();
-      if (insertErr || !created) {
-        console.error("Profile recreate error:", insertErr);
-        return NextResponse.json({ error: "Could not create the profile for this account." }, { status: 500 });
+        .eq("id", authUser.id)
+        .maybeSingle();
+      if (existingById) {
+        profile = existingById;
+      } else {
+        const meta = authUser.user_metadata ?? {};
+        const { data: created, error: insertErr } = await supabase
+          .from("profiles")
+          .insert({
+            id: authUser.id,
+            full_name: meta.full_name ?? authUser.email ?? email,
+            email: authUser.email ?? email,
+            role: "student",
+            student_number: meta.student_number ?? null,
+            course: meta.course ?? null,
+            contact_number: meta.contact_number ?? null,
+            is_alumni: meta.is_alumni ?? false,
+            school_year: meta.school_year ?? null,
+            is_active: false,
+            email_verified: false,
+          })
+          .select("id, full_name, is_active, email_verified")
+          .single();
+        if (insertErr || !created) {
+          console.error("Profile recreate error:", insertErr?.message ?? insertErr);
+          return NextResponse.json(
+            { error: `Could not create the profile for this account. ${insertErr?.message ?? ""}` },
+            { status: 500 }
+          );
+        }
+        profile = created;
       }
-      profile = created;
     }
 
     const { error: updateErr } = await supabase.auth.admin.updateUserById(profile.id, {
