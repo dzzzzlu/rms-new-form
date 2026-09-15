@@ -156,6 +156,31 @@ export default function NewRequestPage() {
       }
     }
 
+    if (hasGoodMoral) {
+      const { data: guidanceUsers } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("role", "guidance")
+        .eq("is_active", true);
+      const { data: studentProfile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+      if (guidanceUsers && guidanceUsers.length > 0) {
+        const notifMessage = `New Good Moral Certificate request from ${
+          studentProfile?.full_name ?? "a student"
+        } awaits your approval.`;
+        for (const g of guidanceUsers) {
+          await supabase.from("notifications").insert({
+            user_id: g.id,
+            message: notifMessage,
+            link: "/guidance/approvals",
+          });
+        }
+      }
+    }
+
     router.push("/student/history");
     router.refresh();
   }
