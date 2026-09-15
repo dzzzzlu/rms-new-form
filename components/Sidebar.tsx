@@ -94,7 +94,13 @@ export default function Sidebar({
     }
     fetchUnread();
     const interval = setInterval(fetchUnread, 30000);
-    return () => { mounted = false; clearInterval(interval); };
+    const onRead = () => fetchUnread();
+    window.addEventListener("messages-read", onRead);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+      window.removeEventListener("messages-read", onRead);
+    };
   }, [userId, pathname]);
 
   async function handleLogout() {

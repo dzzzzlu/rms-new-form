@@ -125,6 +125,7 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
       .eq("receiver_id", userId)
       .eq("is_read", false);
 
+    window.dispatchEvent(new Event("messages-read"));
     loadConversations();
   }
 
