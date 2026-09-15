@@ -21,6 +21,8 @@ type PendingUser = {
   contact_number: string | null;
   is_alumni: boolean;
   school_year: string | null;
+  year_level: string | null;
+  enrollment_status: string | null;
   created_at: string;
 };
 
@@ -34,7 +36,7 @@ export default function AdminApprovalsPage() {
     setLoading(true);
     const { data } = await supabase
       .from("profiles")
-      .select("id, full_name, email, role, student_number, course, contact_number, is_alumni, school_year, created_at")
+      .select("id, full_name, email, role, student_number, course, contact_number, is_alumni, school_year, year_level, enrollment_status, created_at")
       .eq("is_active", false)
       .order("created_at", { ascending: true });
     setUsers((data as PendingUser[]) ?? []);
@@ -139,25 +141,30 @@ export default function AdminApprovalsPage() {
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
                 <div>
-                  <p className="text-slate-500">Role</p>
-                  <p className="font-medium capitalize">{u.role}</p>
+                  <p className="text-slate-500">Status</p>
+                  <p className="font-medium">{u.enrollment_status ?? "—"}</p>
                 </div>
                 <div>
                   <p className="text-slate-500">Course</p>
                   <p className="font-medium">{u.course ?? "—"}</p>
                 </div>
                 <div>
+                  <p className="text-slate-500">Year Level</p>
+                  <p className="font-medium">{u.year_level ?? "—"}</p>
+                </div>
+                <div>
                   <p className="text-slate-500">Student #</p>
                   <p className="font-medium">{u.student_number ?? "—"}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">Mobile</p>
+                  <p className="font-medium">{u.contact_number ?? "—"}</p>
                 </div>
                 <div>
                   <p className="text-slate-500">Registered</p>
                   <p className="font-medium">{new Date(u.created_at).toLocaleDateString()}</p>
                 </div>
               </div>
-              {u.is_alumni && (
-                <p className="text-xs text-slate-500">Alumni · School Year: {u.school_year ?? "—"}</p>
-              )}
               <div className="flex gap-2">
                 <button
                   onClick={() => approve(u)}

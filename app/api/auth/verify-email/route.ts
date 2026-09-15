@@ -27,11 +27,15 @@ export async function POST(req: Request) {
       code,
       password,
       full_name,
+      last_name,
+      first_name,
+      middle_name,
       student_number,
       course,
+      year_level,
+      enrollment_status,
       contact_number,
       is_alumni,
-      school_year,
     } = await req.json();
     if (!email || !code) return NextResponse.json({ error: "Email and code are required." }, { status: 400 });
 
@@ -58,13 +62,20 @@ export async function POST(req: Request) {
     // details on the device, so the email is never "taken" before ownership is
     // proven. Here we create the auth user (pending approval, email confirmed).
     let authUserId: string | null = null;
+    const isAlumni = enrollment_status
+      ? enrollment_status === "Graduated" || enrollment_status === "Alumni"
+      : Boolean(is_alumni);
     const meta = {
       full_name,
+      last_name,
+      first_name,
+      middle_name,
       student_number,
       course,
+      year_level,
+      enrollment_status,
       contact_number,
       is_alumni: Boolean(is_alumni),
-      school_year: school_year ?? null,
     };
 
     if (password) {
@@ -124,8 +135,13 @@ export async function POST(req: Request) {
           student_number: userMeta.student_number ?? null,
           course: userMeta.course ?? null,
           contact_number: userMeta.contact_number ?? null,
+          last_name: userMeta.last_name ?? null,
+          first_name: userMeta.first_name ?? null,
+          middle_name: userMeta.middle_name ?? null,
+          year_level: userMeta.year_level ?? null,
+          enrollment_status: userMeta.enrollment_status ?? "Currently Enrolled",
           is_alumni: Boolean(userMeta.is_alumni),
-          school_year: userMeta.school_year ?? null,
+          consent_accepted_at: new Date().toISOString(),
           is_active: false,
           email_verified: false,
         })
@@ -140,6 +156,24 @@ export async function POST(req: Request) {
       }
       profile = created;
     }
+
+    // Persist the split name parts + school fields onto the profile. The signup
+    // trigger only knows the base columns, so the wizard's extra details are
+    // written here once the email is confirmed.
+    await supabase
+      .from("profiles")
+      .update({
+        full_name: meta.full_name || profile.full_name,
+        last_name: meta.last_name || null,
+        first_name: meta.first_name || null,
+        middle_name: meta.middle_name || null,
+        year_level: meta.year_level || null,
+        enrollment_status: meta.enrollment_status || "Currently Enrolled",
+        contact_number: meta.contact_number || null,
+        is_alumni: Boolean(isAlumni),
+        consent_accepted_at: new Date().toISOString(),
+      })
+      .eq("id", authUserId);
 
     const wasFirstVerification = profile.email_verified === false;
 

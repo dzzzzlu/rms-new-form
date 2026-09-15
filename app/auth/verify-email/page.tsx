@@ -42,11 +42,15 @@ function VerifyEmailForm() {
             Object.assign(body, {
               password: p.password ?? "",
               full_name: p.full_name ?? "",
+              last_name: p.last_name ?? "",
+              first_name: p.first_name ?? "",
+              middle_name: p.middle_name ?? "",
               student_number: p.student_number ?? "",
               course: p.course ?? "",
+              year_level: p.year_level ?? "",
+              enrollment_status: p.enrollment_status ?? "",
               contact_number: p.contact_number ?? "",
               is_alumni: Boolean(p.is_alumni),
-              school_year: p.school_year ?? "",
             });
           }
         }

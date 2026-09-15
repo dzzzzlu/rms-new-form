@@ -151,6 +151,8 @@ function LoginForm() {
         ? "/guidance/dashboard"
         : "/student/dashboard";
 
+    fetch("/api/auth/touch-login", { method: "POST" }).catch(() => {});
+
     router.push(home);
     router.refresh();
   }

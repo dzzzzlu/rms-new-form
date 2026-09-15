@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import {
-  validateFullName,
+  validateNamePart,
   validateEmail,
   validatePassword,
   validateStudentNumber,
@@ -19,32 +19,33 @@ const COURSES = [
   "AB Education",
 ];
 
-const SCHOOL_YEARS = [
-  "2024-2025",
-  "2023-2024",
-  "2022-2023",
-  "2021-2022",
-  "2020-2021",
-  "2019-2020",
-  "2018-2019",
-  "2017-2018",
-  "2016-2017",
-  "2015-2016",
-  "Before 2015",
+const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"];
+
+const ENROLLMENT_STATUSES = [
+  "Currently Enrolled",
+  "On Leave",
+  "Graduated",
+  "Alumni",
 ];
+
+const STEPS = ["Account", "Student Details"];
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [step, setStep] = useState(1);
   const [form, setForm] = useState({
-    full_name: "",
-    student_number: "",
-    course: "",
-    contact_number: "",
     email: "",
     password: "",
     confirm_password: "",
-    is_alumni: false,
-    school_year: "",
+    last_name: "",
+    first_name: "",
+    middle_name: "",
+    student_number: "",
+    course: "",
+    year_level: "",
+    enrollment_status: "" as string,
+    contact_number: "",
+    consent: false,
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -53,34 +54,72 @@ export default function RegisterPage() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  function validateStep1(): string | null {
+    const emailErr = validateEmail(form.email);
+    if (emailErr) return emailErr;
+    const passErr = validatePassword(form.password);
+    if (passErr) return passErr;
+    if (form.password !== form.confirm_password) return "Passwords do not match.";
+    return null;
+  }
+
+  function validateStep2(): string | null {
+    const lastErr = validateNamePart(form.last_name, "Last name");
+    if (lastErr) return lastErr;
+    const firstErr = validateNamePart(form.first_name, "First name");
+    if (firstErr) return firstErr;
+    if (form.middle_name) {
+      const midErr = validateNamePart(form.middle_name, "Middle name");
+      if (midErr) return midErr;
+    }
+    const snErr = validateStudentNumber(form.student_number);
+    if (snErr) return snErr;
+    if (!form.course) return "Please select your course.";
+    if (!form.enrollment_status) return "Please select your enrollment status.";
+    if (
+      (form.enrollment_status === "Currently Enrolled" || form.enrollment_status === "On Leave") &&
+      !form.year_level
+    ) {
+      return "Please select your year level.";
+    }
+    const phoneErr = validateContactNumber(form.contact_number);
+    if (phoneErr) return phoneErr;
+    if (!form.consent) return "Please accept the Data Privacy notice to continue.";
+    return null;
+  }
+
+  function next() {
+    setError(null);
+    const err = step === 1 ? validateStep1() : validateStep2();
+    if (err) {
+      setError(err);
+      return;
+    }
+    setStep(2);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function back() {
+    setError(null);
+    setStep(1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-
-    const nameErr = validateFullName(form.full_name);
-    if (nameErr) { setError(nameErr); return; }
-    const emailErr = validateEmail(form.email);
-    if (emailErr) { setError(emailErr); return; }
-    const passErr = validatePassword(form.password);
-    if (passErr) { setError(passErr); return; }
-    if (form.password !== form.confirm_password) {
-      setError("Passwords do not match.");
-      return;
-    }
-    const snErr = validateStudentNumber(form.student_number);
-    if (snErr) { setError(snErr); return; }
-    const phoneErr = validateContactNumber(form.contact_number);
-    if (phoneErr) { setError(phoneErr); return; }
-    if (!form.course) {
-      setError("Please select your course.");
-      return;
-    }
-    if (form.is_alumni && !form.school_year) {
-      setError("Please select your school year.");
+    const err = validateStep2();
+    if (err) {
+      setError(err);
       return;
     }
 
     setLoading(true);
+
+    const fullName = [form.last_name.trim().toUpperCase(), form.first_name.trim()]
+      .concat(form.middle_name.trim() ? [form.middle_name.trim()] : [])
+      .join(" ");
+    const isAlumni = form.enrollment_status === "Graduated" || form.enrollment_status === "Alumni";
 
     let sendErrorMsg = "";
     try {
@@ -106,12 +145,16 @@ export default function RegisterPage() {
       JSON.stringify({
         email: form.email,
         password: form.password,
-        full_name: form.full_name,
-        student_number: form.student_number,
+        full_name: fullName,
+        last_name: form.last_name.trim(),
+        first_name: form.first_name.trim(),
+        middle_name: form.middle_name.trim(),
+        student_number: form.student_number.trim(),
         course: form.course,
-        contact_number: form.contact_number,
-        is_alumni: form.is_alumni,
-        school_year: form.is_alumni ? form.school_year : "",
+        year_level: form.year_level,
+        enrollment_status: form.enrollment_status,
+        contact_number: form.contact_number.trim(),
+        is_alumni: isAlumni,
       })
     );
 
@@ -123,6 +166,9 @@ export default function RegisterPage() {
     }
     router.push(`/auth/verify-email?${params.toString()}`);
   }
+
+  const needsYear =
+    form.enrollment_status === "Currently Enrolled" || form.enrollment_status === "On Leave";
 
   return (
     <main className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-900 via-brand-700 to-brand-500 px-4 py-10">
@@ -137,88 +183,234 @@ export default function RegisterPage() {
           <p className="text-sm text-brand-100">Regis Marie College Document Request System</p>
         </div>
 
+        {/* step indicator */}
+        <ol className="mb-5 flex items-center justify-center gap-2">
+          {STEPS.map((label, i) => {
+            const n = i + 1;
+            const active = step === n;
+            const done = step > n;
+            return (
+              <li key={label} className="flex items-center gap-2">
+                <span
+                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                    active
+                      ? "bg-gold text-brand-950"
+                      : done
+                      ? "bg-emerald-400 text-emerald-950"
+                      : "bg-white/15 text-white"
+                  }`}
+                >
+                  {done ? <Check className="h-4 w-4" /> : n}
+                </span>
+                <span
+                  className={`text-xs font-medium ${
+                    active ? "text-white" : done ? "text-emerald-200" : "text-brand-200"
+                  }`}
+                >
+                  {label}
+                </span>
+                {n < STEPS.length && <span className="mx-1 h-px w-6 bg-white/25" />}
+              </li>
+            );
+          })}
+        </ol>
+
         <form onSubmit={handleSubmit} className="rounded-2xl bg-white p-7 shadow-2xl">
           {error && (
-            <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-              {error}
+            <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</div>
+          )}
+
+          {step === 1 && (
+            <div className="space-y-4">
+              <div>
+                <label className="label">Email</label>
+                <input
+                  type="email"
+                  required
+                  className="input"
+                  value={form.email}
+                  onChange={(e) => update("email", e.target.value)}
+                  placeholder="you@regismarie.edu.ph"
+                />
+                <p className="mt-1 text-xs text-slate-400">
+                  This will be your login. You&apos;ll confirm it with a 6-digit code before your
+                  account is queued for approval.
+                </p>
+              </div>
+              <div>
+                <label className="label">Password</label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  className="input"
+                  value={form.password}
+                  onChange={(e) => update("password", e.target.value)}
+                />
+                <p className="mt-1 text-xs text-slate-400">
+                  At least 8 characters with 1 letter and 1 number.
+                </p>
+              </div>
+              <div>
+                <label className="label">Confirm Password</label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  className="input"
+                  value={form.confirm_password}
+                  onChange={(e) => update("confirm_password", e.target.value)}
+                />
+              </div>
             </div>
           )}
 
-          <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="label">Full Name</label>
-              <input required className="input" value={form.full_name}
-                onChange={(e) => update("full_name", e.target.value)} />
-            </div>
-            <div>
-              <label className="label">Student Number</label>
-              <input className="input" value={form.student_number}
-                onChange={(e) => update("student_number", e.target.value)} />
-            </div>
-            <div>
-              <label className="label">Course</label>
-              <select required className="input" value={form.course}
-                onChange={(e) => update("course", e.target.value)}>
-                <option value="">Select course…</option>
-                {COURSES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="label">Contact Number</label>
-              <input className="input" value={form.contact_number}
-                onChange={(e) => update("contact_number", e.target.value)} />
-            </div>
-          </div>
+          {step === 2 && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div>
+                  <label className="label">Last Name</label>
+                  <input
+                    required
+                    className="input"
+                    value={form.last_name}
+                    onChange={(e) => update("last_name", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="label">First Name</label>
+                  <input
+                    required
+                    className="input"
+                    value={form.first_name}
+                    onChange={(e) => update("first_name", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="label">Middle Name</label>
+                  <input
+                    className="input"
+                    value={form.middle_name}
+                    onChange={(e) => update("middle_name", e.target.value)}
+                  />
+                </div>
+              </div>
 
-          <div className="mb-4">
-            <label className="flex items-center gap-2 text-sm text-slate-600">
-              <input
-                type="checkbox"
-                checked={form.is_alumni}
-                onChange={(e) => update("is_alumni", e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-400"
-              />
-              I am an alumni (not currently enrolled)
-            </label>
-          </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="label">Student Number</label>
+                  <input
+                    className="input"
+                    value={form.student_number}
+                    onChange={(e) => update("student_number", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="label">Course</label>
+                  <select
+                    required
+                    className="input"
+                    value={form.course}
+                    onChange={(e) => update("course", e.target.value)}
+                  >
+                    <option value="">Select course…</option>
+                    {COURSES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Enrollment Status</label>
+                  <select
+                    required
+                    className="input"
+                    value={form.enrollment_status}
+                    onChange={(e) => update("enrollment_status", e.target.value)}
+                  >
+                    <option value="">Select status…</option>
+                    {ENROLLMENT_STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Year Level</label>
+                  <select
+                    required={needsYear}
+                    className="input"
+                    value={form.year_level}
+                    onChange={(e) => update("year_level", e.target.value)}
+                    disabled={!needsYear}
+                  >
+                    <option value="">
+                      {needsYear ? "Select year level…" : "Not applicable"}
+                    </option>
+                    {YEAR_LEVELS.map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-          {form.is_alumni && (
-            <div className="mb-4">
-              <label className="label">School Year</label>
-              <select required className="input" value={form.school_year}
-                onChange={(e) => update("school_year", e.target.value)}>
-                <option value="">Select school year…</option>
-                {SCHOOL_YEARS.map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
+              <div>
+                <label className="label">Mobile Number</label>
+                <input
+                  className="input"
+                  value={form.contact_number}
+                  onChange={(e) => update("contact_number", e.target.value)}
+                  placeholder="09XX XXX XXXX"
+                />
+                <p className="mt-1 text-xs text-slate-400">
+                  Used for pickup reminders when your documents are ready.
+                </p>
+              </div>
+
+              <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={form.consent}
+                  onChange={(e) => update("consent", e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-400"
+                />
+                <span>
+                  I consent to Regis Marie College collecting and processing the personal
+                  information I provide here and on my document requests, in line with the{" "}
+                  <Link href="/privacy" target="_blank" className="font-medium text-brand-600 underline">
+                    Data Privacy notice
+                  </Link>
+                  .
+                </span>
+              </label>
             </div>
           )}
 
-          <div className="mb-4">
-            <label className="label">Email</label>
-            <input type="email" required className="input" value={form.email}
-              onChange={(e) => update("email", e.target.value)} />
+          <div className="mt-6 flex items-center justify-between gap-3">
+            {step === 2 ? (
+              <>
+                <button
+                  type="button"
+                  onClick={back}
+                  disabled={loading}
+                  className="btn-outline flex items-center gap-1"
+                >
+                  <ChevronLeft className="h-4 w-4" /> Back
+                </button>
+                <button type="submit" disabled={loading} className="btn-primary flex items-center gap-1">
+                  {loading ? "Creating account…" : "Create Account"}
+                </button>
+              </>
+            ) : (
+              <button type="button" onClick={next} className="btn-primary ml-auto flex items-center gap-1">
+                Continue <ChevronRight className="h-4 w-4" />
+              </button>
+            )}
           </div>
-
-          <div className="mb-4">
-            <label className="label">Password</label>
-            <input type="password" required minLength={8} className="input" value={form.password}
-              onChange={(e) => update("password", e.target.value)} />
-            <p className="mt-1 text-xs text-slate-400">At least 8 characters with 1 letter and 1 number.</p>
-          </div>
-
-          <div className="mb-6">
-            <label className="label">Confirm Password</label>
-            <input type="password" required minLength={8} className="input" value={form.confirm_password}
-              onChange={(e) => update("confirm_password", e.target.value)} />
-          </div>
-
-          <button type="submit" disabled={loading} className="btn-primary w-full">
-            {loading ? "Creating account…" : "Create Account"}
-          </button>
 
           <p className="mt-5 text-center text-sm text-slate-500">
             Already have an account?{" "}

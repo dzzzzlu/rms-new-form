@@ -13,6 +13,14 @@ export type PaymentStatus = "Pending" | "Verified" | "Rejected";
 
 export type ApprovalStatus = "Pending" | "Approved" | "Rejected";
 
+export type EnrollmentStatus = "Currently Enrolled" | "On Leave" | "Graduated" | "Alumni";
+
+export interface NotificationPrefs {
+  email_alerts: boolean;
+  pickup_reminders: boolean;
+  sms_alerts: boolean;
+}
+
 export interface Profile {
   id: string;
   student_number: string | null;
@@ -22,8 +30,17 @@ export interface Profile {
   course: string | null;
   contact_number: string | null;
   is_active: boolean;
+  email_verified: boolean;
   is_alumni: boolean;
   school_year: string | null;
+  last_name: string | null;
+  first_name: string | null;
+  middle_name: string | null;
+  year_level: string | null;
+  enrollment_status: EnrollmentStatus;
+  consent_accepted_at: string | null;
+  notification_prefs: NotificationPrefs;
+  last_login_at: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -10,6 +10,17 @@ export function validateFullName(name: string): string | null {
   return null;
 }
 
+export function validateNamePart(name: string, label: string): string | null {
+  const s = sanitize(name);
+  if (!s) return `${label} is required.`;
+  if (s.length < 2) return `${label} must be at least 2 characters.`;
+  if (s.length > 50) return `${label} must be at most 50 characters.`;
+  if (!/^[A-Za-z\s'.\-]+$/.test(s)) {
+    return `${label} can only contain letters, spaces, hyphens, periods, and apostrophes.`;
+  }
+  return null;
+}
+
 export function validateEmail(email: string): string | null {
   const s = sanitize(email);
   if (!s) return "Email is required.";
