@@ -8,6 +8,18 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+async function findAuthUserByEmail(email: string) {
+  let page = 1;
+  while (page <= 10) {
+    const { data } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+    const user = data?.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+    if (user) return user;
+    if (!data || data.users.length < 1000) break;
+    page++;
+  }
+  return null;
+}
+
 export async function POST(req: Request) {
   try {
     const { email, code } = await req.json();
@@ -31,13 +43,42 @@ export async function POST(req: Request) {
 
     await supabase.from("email_verifications").update({ used: true }).eq("id", verification.id);
 
-    const { data: profile } = await supabase
+    let { data: profile } = await supabase
       .from("profiles")
       .select("id, full_name, is_active, email_verified")
       .eq("email", email)
-      .single();
+      .maybeSingle();
+
+    // If the signup trigger never created a profile row, recreate it from the
+    // auth user so verification can finish instead of failing with an error.
     if (!profile) {
-      return NextResponse.json({ error: "User not found." }, { status: 400 });
+      const authUser = await findAuthUserByEmail(email);
+      if (!authUser) {
+        return NextResponse.json({ error: "No account found for this email." }, { status: 400 });
+      }
+      const meta = authUser.user_metadata ?? {};
+      const { data: created, error: insertErr } = await supabase
+        .from("profiles")
+        .insert({
+          id: authUser.id,
+          full_name: meta.full_name ?? authUser.email ?? email,
+          email: authUser.email ?? email,
+          role: "student",
+          student_number: meta.student_number ?? null,
+          course: meta.course ?? null,
+          contact_number: meta.contact_number ?? null,
+          is_alumni: meta.is_alumni ?? false,
+          school_year: meta.school_year ?? null,
+          is_active: false,
+          email_verified: false,
+        })
+        .select("id, full_name, is_active, email_verified")
+        .single();
+      if (insertErr || !created) {
+        console.error("Profile recreate error:", insertErr);
+        return NextResponse.json({ error: "Could not create the profile for this account." }, { status: 500 });
+      }
+      profile = created;
     }
 
     const { error: updateErr } = await supabase.auth.admin.updateUserById(profile.id, {
