@@ -1,45 +1,64 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RequestWithRelations } from "@/lib/types";
 import { sendNotification } from "@/lib/notify";
-import { Inbox } from "lucide-react";
+import { Search, Inbox, Clock, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import PrintDocument, { type PrintDoc } from "@/components/PrintDocument";
 
-const STATUSES = [
-  "Pending",
-  "Payment Verification",
-  "Processing",
-  "Ready for Pickup",
-  "Completed",
-  "Rejected",
-  "Cancelled",
-] as const;
+type Step = { label: string; app: string[] };
+
+const GCASH_STEPS: Step[] = [
+  { label: "Received", app: ["Pending", "Payment Verification"] },
+  { label: "Processing", app: ["Processing"] },
+  { label: "Ready", app: ["Ready for Pickup"] },
+  { label: "Released", app: ["Completed"] },
+];
+
+const WALKIN_STEPS: Step[] = [
+  { label: "Received", app: ["Pending", "Payment Verification"] },
+  { label: "Processing", app: ["Processing"] },
+  { label: "Released", app: ["Completed"] },
+];
 
 const RELEASE_STATUSES = ["Ready for Pickup", "Completed"];
 
-function nextStatuses(current: string, isWalkIn = false): readonly string[] {
-  if (isWalkIn) {
-    if (current === "Pending" || current === "Payment Verification") return ["Processing", "Completed", "Cancelled"];
-    if (current === "Processing") return ["Completed", "Cancelled"];
-    if (current === "Completed") return ["Completed"] as const;
-    if (current === "Cancelled" || current === "Rejected") return ["Cancelled"] as const;
-    return ["Completed", "Cancelled"];
-  }
-  if (current === "Pending") return ["Payment Verification", "Processing", "Rejected"];
-  if (current === "Payment Verification") return ["Processing", "Rejected"];
-  if (current === "Processing") return ["Completed", "Rejected"];
-  if (current === "Ready for Pickup") return ["Completed", "Rejected"];
-  if (current === "Completed") return ["Completed"] as const;
-  if (current === "Rejected") return ["Rejected"] as const;
-  if (current === "Cancelled") return ["Cancelled"] as const;
-  return STATUSES;
-}
+const STATUS_META: Record<string, { color: string; chip: string }> = {
+  Pending: { color: "#8b99a7", chip: "bg-slate-100 text-slate-600" },
+  "Payment Verification": { color: "#8b99a7", chip: "bg-slate-100 text-slate-600" },
+  Processing: { color: "#b4690e", chip: "bg-amber-50 text-amber-700" },
+  "Ready for Pickup": { color: "#177a4c", chip: "bg-emerald-50 text-emerald-700" },
+  Completed: { color: "#5b6b7c", chip: "bg-slate-200 text-slate-700" },
+  Rejected: { color: "#b3261e", chip: "bg-red-50 text-red-700" },
+  Cancelled: { color: "#8b99a7", chip: "bg-slate-100 text-slate-600" },
+};
+
+const CHIPS: { id: string; label: string; statuses: string[] | null; color: string | null }[] = [
+  { id: "All", label: "All", statuses: null, color: null },
+  { id: "received", label: "Received", statuses: ["Pending", "Payment Verification"], color: "#8b99a7" },
+  { id: "processing", label: "Processing", statuses: ["Processing"], color: "#b4690e" },
+  { id: "ready", label: "Ready", statuses: ["Ready for Pickup"], color: "#177a4c" },
+  { id: "released", label: "Released", statuses: ["Completed"], color: "#5b6b7c" },
+  { id: "rejected", label: "Rejected", statuses: ["Rejected"], color: "#b3261e" },
+  { id: "cancelled", label: "Cancelled", statuses: ["Cancelled"], color: null },
+];
 
 function isWalkIn(r: RequestWithRelations): boolean {
   return Array.isArray(r.payments) && r.payments.some((p) => p.payment_method === "walk_in");
+}
+
+function stepsFor(isWalkIn: boolean) {
+  return isWalkIn ? WALKIN_STEPS : GCASH_STEPS;
+}
+
+function stepIndexOf(r: RequestWithRelations): number {
+  return stepsFor(isWalkIn(r)).findIndex((s) => s.app.includes(r.status));
+}
+
+function isTerminal(r: RequestWithRelations): boolean {
+  return r.status === "Completed" || r.status === "Rejected" || r.status === "Cancelled";
 }
 
 function formatPickup(d: Date) {
@@ -52,6 +71,42 @@ function formatPickup(d: Date) {
     minute: "2-digit",
     hour12: true,
   });
+}
+
+function pickupInfo(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  const today = new Date(now.toDateString());
+  const day = new Date(d.toDateString());
+  const days = Math.round((day.getTime() - today.getTime()) / 864e5);
+  const time = d.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" });
+  const date = d.toLocaleDateString("en-PH", { weekday: "short", month: "short", day: "numeric" });
+  if (days < 0) return { when: "overdue" as const, text: `Overdue — was ${date}, ${time}` };
+  if (days === 0) return { when: "today" as const, text: `Pickup today, ${time}` };
+  if (days === 1) return { when: "soon" as const, text: `Pickup tomorrow, ${time}` };
+  return { when: "later" as const, text: `Pickup ${date}, ${time}` };
+}
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+function nextStepAction(r: RequestWithRelations): { label: string; status: string } | null {
+  if (isTerminal(r)) return null;
+  const walkin = isWalkIn(r);
+  if (r.status === "Pending" || r.status === "Payment Verification") {
+    return { label: "Mark processing", status: "Processing" };
+  }
+  if (r.status === "Processing") {
+    return walkin ? { label: "Mark released", status: "Completed" } : { label: "Mark ready", status: "Ready for Pickup" };
+  }
+  if (r.status === "Ready for Pickup") return { label: "Mark released", status: "Completed" };
+  return null;
 }
 
 function toPrintDoc(r: RequestWithRelations): PrintDoc {
@@ -70,18 +125,21 @@ function toPrintDoc(r: RequestWithRelations): PrintDoc {
   };
 }
 
+type PickupTarget = { kind: "single"; r: RequestWithRelations } | { kind: "bulk"; docs: RequestWithRelations[] };
+
 export default function ManageRequestsPage() {
   const supabase = createClient();
   const [requests, setRequests] = useState<RequestWithRelations[]>([]);
-  const [filter, setFilter] = useState<string>("All");
+  const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
-  const [pickupRequest, setPickupRequest] = useState<RequestWithRelations | null>(null);
+  const [pickupTarget, setPickupTarget] = useState<PickupTarget | null>(null);
   const [pickupDate, setPickupDate] = useState("");
   const [pickupTime, setPickupTime] = useState("");
+  const [selected, setSelected] = useState<Set<number>>(new Set());
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     const select =
       "id, tracking_code, batch_id, purpose, copies, status, pickup_at, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), payments(payment_method), profiles(full_name, student_number, course, contact_number, email)";
@@ -102,24 +160,37 @@ export default function ManageRequestsPage() {
     }
     setRequests((data as unknown as RequestWithRelations[]) ?? []);
     setLoading(false);
-  }
+  }, [supabase]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
-  function handleStatusChange(r: RequestWithRelations, status: string) {
-    if (status === "Ready for Pickup") {
-      if (r.documents?.name === "Good Moral Certificate" && r.guidance_status !== "Approved") {
-        toast.error("This Good Moral request hasn't been approved by the Guidance Department yet.");
-        return;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (e.key === "/" && target.tagName !== "INPUT" && target.tagName !== "TEXTAREA") {
+        e.preventDefault();
+        document.getElementById("request-search")?.focus();
       }
-      setPickupDate("");
-      setPickupTime("");
-      setPickupRequest(r);
-      return;
+      if (e.key === "Escape" && selected.size > 0) {
+        setSelected(new Set());
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selected.size]);
+
+  function guidanceBlocked(r: RequestWithRelations, status: string): boolean {
+    if (
+      RELEASE_STATUSES.includes(status) &&
+      r.documents?.name === "Good Moral Certificate" &&
+      r.guidance_status !== "Approved"
+    ) {
+      toast.error("This Good Moral request hasn't been approved by the Guidance Department yet.");
+      return true;
     }
-    updateStatus(r, status);
+    return false;
   }
 
   async function updateStatus(
@@ -129,12 +200,7 @@ export default function ManageRequestsPage() {
     scheduleRemarks?: string,
     skipConfirm?: boolean
   ) {
-    if (RELEASE_STATUSES.includes(status)) {
-      if (r.documents?.name === "Good Moral Certificate" && r.guidance_status !== "Approved") {
-        toast.error("This Good Moral request hasn't been approved by the Guidance Department yet.");
-        return;
-      }
-    }
+    if (guidanceBlocked(r, status)) return;
 
     if (!skipConfirm) {
       const confirmMsg =
@@ -170,7 +236,9 @@ export default function ManageRequestsPage() {
         status === "Ready for Pickup" && pickupAt ? formatPickup(new Date(pickupAt)) : "";
       const message =
         status === "Ready for Pickup"
-          ? `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) is ready for pickup. Please claim it on ${pickupLabel}.`
+          ? pickupLabel
+            ? `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) is ready for pickup. Please claim it on ${pickupLabel}.`
+            : `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) is ready for pickup. Please coordinate with the registrar's office.`
           : `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) status has been updated to "${status}".`;
       sendNotification({
         senderId: me.user.id,
@@ -178,26 +246,75 @@ export default function ManageRequestsPage() {
         message,
         subject:
           status === "Ready for Pickup"
-            ? `Ready for Pickup — ${pickupLabel}`
+            ? `Ready for Pickup${pickupLabel ? ` — ${pickupLabel}` : ""}`
             : `Request Status Update — ${status}`,
         link: `/student/requests/${r.id}`,
         html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Document Request Update</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p>${
           status === "Ready for Pickup"
-            ? `<p>Your <strong>${r.documents?.name ?? "document"}</strong> request (<strong>${r.tracking_code}</strong>) is <strong style="color:#4F46E5;">ready for pickup</strong>.</p><p style="background:#EEF2FF;padding:12px;border-radius:8px;"><strong>Pickup schedule:</strong><br/>${pickupLabel}</p>`
+            ? `<p>Your <strong>${r.documents?.name ?? "document"}</strong> request (<strong>${r.tracking_code}</strong>) is <strong style="color:#4F46E5;">ready for pickup</strong>.</p>${
+                pickupLabel
+                  ? `<p style="background:#EEF2FF;padding:12px;border-radius:8px;"><strong>Pickup schedule:</strong><br/>${pickupLabel}</p>`
+                  : `<p>Please coordinate with the registrar's office for pickup details.</p>`
+              }`
             : `<p>Your <strong>${r.documents?.name ?? "document"}</strong> request (<strong>${r.tracking_code}</strong>) has been updated to <strong>${status}</strong>.</p>`
         }<p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
       });
     }
 
-    toast.success(`Status changed to "${status}".`);
     setUpdatingId(null);
-    setPickupRequest(null);
-    load();
+    return true;
   }
 
-  async function schedulePickup() {
-    const r = pickupRequest;
-    if (!r) return;
+  function openPickupModal(r: RequestWithRelations) {
+    if (guidanceBlocked(r, "Ready for Pickup")) return;
+    setPickupDate("");
+    setPickupTime("");
+    setPickupTarget({ kind: "single", r });
+  }
+
+  function handleStepClick(r: RequestWithRelations, stepIndex: number) {
+    const steps = stepsFor(isWalkIn(r));
+    const target = steps[stepIndex].app[0];
+    const currentIdx = stepIndexOf(r);
+    if (currentIdx === stepIndex || target === r.status) return;
+    if (target === "Ready for Pickup") {
+      openPickupModal(r);
+      return;
+    }
+    if (target === "Completed") {
+      const confirmed = window.confirm(
+        `Mark "${r.documents?.name}" (${r.tracking_code}) as Completed? Confirm you have already handed the document to the student.`
+      );
+      if (!confirmed) return;
+      updateStatus(r, "Completed");
+      return;
+    }
+    if (currentIdx < 0 || stepIndex < currentIdx) {
+      const confirmed = window.confirm(`Move "${r.documents?.name}" (${r.tracking_code}) back to "${target}"?`);
+      if (!confirmed) return;
+    }
+    updateStatus(r, target);
+  }
+
+  function handleNext(r: RequestWithRelations) {
+    const action = nextStepAction(r);
+    if (!action) return;
+    if (action.status === "Ready for Pickup") {
+      openPickupModal(r);
+      return;
+    }
+    if (action.status === "Completed") {
+      if (guidanceBlocked(r, "Completed")) return;
+      const confirmed = window.confirm(
+        `Mark "${r.documents?.name}" (${r.tracking_code}) as Completed? Confirm you have already handed the document to the student.`
+      );
+      if (!confirmed) return;
+    }
+    updateStatus(r, action.status);
+  }
+
+  async function verifyPickupSchedule() {
+    if (!pickupTarget) return;
     if (!pickupDate || !pickupTime) {
       toast.error("Please set the pickup date and time.");
       return;
@@ -208,50 +325,99 @@ export default function ManageRequestsPage() {
       return;
     }
     const label = formatPickup(pickupAt);
-    setUpdatingId(r.id);
-    const { data: me } = await supabase.auth.getUser();
-    const { error } = await supabase
-      .from("requests")
-      .update({ status: "Ready for Pickup", pickup_at: pickupAt.toISOString() })
-      .eq("id", r.id);
-    if (error) {
-      toast.error("Failed to save the pickup schedule.");
-      setUpdatingId(null);
-      return;
-    }
-    await supabase.from("status_history").insert({
-      request_id: r.id,
-      status: "Ready for Pickup",
-      remarks: `Pickup scheduled on ${label}.`,
-    });
-
-    if (r.user_id && me?.user?.id) {
-      sendNotification({
-        senderId: me.user.id,
-        receiverId: r.user_id,
-        message: `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) is ready for pickup. Please claim it on ${label}.`,
-        subject: `Ready for Pickup — ${label}`,
-        link: `/student/requests/${r.id}`,
-        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Ready for Pickup</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your <strong>${r.documents?.name ?? "document"}</strong> request (<strong>${r.tracking_code}</strong>) is <strong style="color:#4F46E5;">ready for pickup</strong>.</p><p style="background:#EEF2FF;padding:12px;border-radius:8px;"><strong>Pickup schedule:</strong><br/>${label}</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
+    const docs = pickupTarget.kind === "single" ? [pickupTarget.r] : pickupTarget.docs;
+    for (const r of docs) {
+      if (guidanceBlocked(r, "Ready for Pickup")) continue;
+      await supabase
+        .from("requests")
+        .update({ status: "Ready for Pickup", pickup_at: pickupAt.toISOString() })
+        .eq("id", r.id);
+      await supabase.from("status_history").insert({
+        request_id: r.id,
+        status: "Ready for Pickup",
+        remarks: `Pickup scheduled on ${label}.`,
       });
+      const { data: me } = await supabase.auth.getUser();
+      if (r.user_id && me?.user?.id) {
+        sendNotification({
+          senderId: me.user.id,
+          receiverId: r.user_id,
+          message: `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) is ready for pickup. Please claim it on ${label}.`,
+          subject: `Ready for Pickup — ${label}`,
+          link: `/student/requests/${r.id}`,
+          html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Ready for Pickup</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your <strong>${r.documents?.name ?? "document"}</strong> request (<strong>${r.tracking_code}</strong>) is <strong style="color:#4F46E5;">ready for pickup</strong>.</p><p style="background:#EEF2FF;padding:12px;border-radius:8px;"><strong>Pickup schedule:</strong><br/>${label}</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
+        });
+      }
     }
-
-    toast.success(`"${r.documents?.name}" set to Ready for Pickup — schedule ${label}. Mark it Completed once the student picks it up.`);
-    setUpdatingId(null);
-    setPickupRequest(null);
+    toast.success(
+      docs.length > 1
+        ? `${docs.length} requests set to Ready for Pickup — ${label}.`
+        : `"${docs[0].documents?.name}" set to Ready for Pickup — ${label}. Mark it Completed once the student picks it up.`
+    );
+    setPickupTarget(null);
     load();
   }
 
-  const visible = requests.filter((r) => {
-    const matchStatus = filter === "All" || r.status === filter;
+  async function bulkAction(kind: "print" | "ready" | "released") {
+    const ids = [...selected];
+    const docs = requests.filter((r) => ids.includes(r.id));
+    if (docs.length === 0) return;
+
+    if (kind === "print") {
+      setSelected(new Set());
+      return;
+    }
+
+    if (kind === "ready") {
+      const eligible = docs.filter((r) => !isWalkIn(r) && !isTerminal(r));
+      if (eligible.length === 0) {
+        toast.error("No selectable requests can be marked ready (walk-in requests don't schedule pickups).");
+        return;
+      }
+      setPickupDate("");
+      setPickupTime("");
+      setPickupTarget({ kind: "bulk", docs: eligible });
+      return;
+    }
+
+    if (kind === "released") {
+      const confirmed = window.confirm(
+        `Mark ${docs.length} selected request${docs.length > 1 ? "s" : ""} as Completed? Confirm the documents have already been handed over.`
+      );
+      if (!confirmed) return;
+      let done = 0;
+      for (const r of docs) {
+        if (guidanceBlocked(r, "Completed")) continue;
+        const ok = await updateStatus(r, "Completed", null, undefined, true);
+        if (ok) done++;
+      }
+      toast.success(`${done} request${done !== 1 ? "s" : ""} marked as Completed.`);
+      setSelected(new Set());
+      load();
+    }
+  }
+
+  const selectedDocs = selected.size ? requests.filter((r) => selected.has(r.id)) : [];
+
+  const counts = useMemo(() => {
+    const base: Record<string, number> = { All: requests.length };
+    for (const chip of CHIPS) {
+      if (chip.id === "All") continue;
+      base[chip.id] = requests.filter((r) => chip.statuses!.includes(r.status)).length;
+    }
+    return base;
+  }, [requests]);
+
+  const visible = useMemo(() => {
+    const chip = CHIPS.find((c) => c.id === filter);
     const q = search.toLowerCase();
-    const matchSearch =
-      !q ||
-      r.profiles?.full_name?.toLowerCase().includes(q) ||
-      r.profiles?.student_number?.toLowerCase().includes(q) ||
-      r.tracking_code?.toLowerCase().includes(q);
-    return matchStatus && matchSearch;
-  });
+    return requests.filter((r) => {
+      if (chip?.statuses && !chip.statuses.includes(r.status)) return false;
+      if (!q) return true;
+      const hay = `${r.profiles?.full_name ?? ""} ${r.profiles?.student_number ?? ""} ${r.tracking_code ?? ""} ${r.documents?.name ?? ""}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [requests, filter, search]);
 
   const groups = useMemo(() => {
     const map = new Map<string, RequestWithRelations[]>();
@@ -264,183 +430,335 @@ export default function ManageRequestsPage() {
     return Array.from(map.values());
   }, [visible]);
 
+  const openCount = requests.filter((r) => !["Completed", "Rejected", "Cancelled"].includes(r.status)).length;
+  const awaitingCount = requests.filter((r) => r.status === "Ready for Pickup").length;
+
+  function toggleSelect(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   return (
-    <div className="space-y-4">
-      <div className="card flex flex-wrap items-center gap-3">
-        <input
-          className="input flex-1"
-          placeholder="Search by name, student number, or tracking code…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select className="input w-auto" value={filter} onChange={(e) => setFilter(e.target.value)}>
-          <option>All</option>
-          {STATUSES.map((s) => (
-            <option key={s}>{s}</option>
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            id="request-search"
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, student number, or tracking code"
+            className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-12 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          />
+          <span className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-slate-200 border-b-2 px-1.5 py-0.5 text-[11px] text-slate-400 sm:block">
+            /
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {CHIPS.map((chip) => (
+            <button
+              key={chip.id}
+              onClick={() => setFilter(chip.id)}
+              aria-pressed={filter === chip.id}
+              className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+                filter === chip.id
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-300 bg-white text-slate-500 hover:border-slate-400 hover:text-slate-800"
+              }`}
+            >
+              {chip.color && <span className="h-2 w-2 rounded-sm" style={{ background: chip.color }} />}
+              {chip.label}
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                  filter === chip.id ? "bg-white/15 text-white" : "bg-slate-100 text-slate-500"
+                }`}
+              >
+                {counts[chip.id]}
+              </span>
+            </button>
           ))}
-        </select>
+        </div>
+
+        {!loading && (
+          <p className="text-[13px] text-slate-500">
+            <span className="font-semibold text-brand-700">{openCount}</span> open ·{" "}
+            <span className="font-semibold text-emerald-700">{awaitingCount}</span> awaiting pickup
+          </p>
+        )}
       </div>
 
       {loading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="card space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="space-y-2">
+          {[1, 2].map((i) => (
+            <div key={i} className="rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="space-y-3 p-5">
+                <div className="flex items-center justify-between">
                   <div className="skeleton h-4 w-48" />
-                  <div className="skeleton h-3 w-64" />
+                  <div className="skeleton h-8 w-28" />
                 </div>
-                <div className="skeleton h-8 w-32" />
+                <div className="skeleton h-3 w-72" />
               </div>
             </div>
           ))}
         </div>
       ) : visible.length === 0 ? (
-        <div className="empty-state card">
-          <Inbox className="mb-3 h-10 w-10 text-slate-300" />
-          <p className="text-sm font-medium text-slate-500">No requests in this view.</p>
+        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-14 text-center">
+          <Inbox className="mx-auto mb-3 h-10 w-10 text-slate-300" />
+          <h2 className="text-base font-semibold text-slate-800">Nothing matches that</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Try a different tracking code, or clear the status filter to see the full queue.
+          </p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {groups.map((group) => {
             const first = group[0];
             const student = first.profiles;
             return (
-              <div key={first.batch_id ?? `single-${first.id}`} className="space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-3 pl-1">
-                  <div>
-                    <p className="text-sm font-semibold text-brand-900">
-                      {student?.full_name ?? "Student"} · {group.length} document
-                      {group.length !== 1 ? "s" : ""}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {student?.student_number ?? "—"} · {group.map((r) => r.tracking_code).join(" · ")}
-                    </p>
+              <section key={first.batch_id ?? `single-${first.id}`} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-gradient-to-b from-white to-slate-50 px-4 py-3">
+                  <div className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-brand-50 text-[12.5px] font-bold text-brand-700">
+                    {initials(student?.full_name ?? "U")}
                   </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-slate-900">{student?.full_name ?? "Student"}</div>
+                    <div className="flex flex-wrap gap-x-2.5 text-[12.5px] text-slate-500">
+                      <span>{student?.student_number ?? "—"}</span>
+                      <span className="font-mono">{first.batch_id ?? first.tracking_code}</span>
+                      <span>
+                        {group.length} document{group.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="flex-1" />
                   <PrintDocument docs={group.map(toPrintDoc)} />
+                  <span className="sr-only">Print claim slips</span>
                 </div>
 
-                <div className="space-y-2">
-                  {group.map((r) => (
-                    <div key={r.id} className="card space-y-2">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-brand-900">{r.documents?.name}</p>
-                          {isWalkIn(r) && (
-                            <span className="mt-0.5 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
-                              Walk-in
+                {group.map((r) => {
+                  const walkin = isWalkIn(r);
+                  const steps = stepsFor(walkin);
+                  const idx = stepIndexOf(r);
+                  const meta = STATUS_META[r.status] ?? STATUS_META.Pending;
+                  const p = r.pickup_at
+                    ? pickupInfo(r.pickup_at)
+                    : null;
+                  const next = nextStepAction(r);
+                  return (
+                    <article key={r.id} className="border-t border-slate-200 first:border-t-0">
+                      <div className="flex items-start gap-3">
+                        <span className="h-full w-1 flex-none self-stretch" style={{ background: meta.color }} />
+                        <label className="flex-none pt-4">
+                          <input
+                            type="checkbox"
+                            checked={selected.has(r.id)}
+                            onChange={() => toggleSelect(r.id)}
+                            aria-label={`Select ${r.documents?.name ?? "document"}`}
+                            className="mt-0.5 h-4 w-4 accent-brand-600"
+                            disabled={updatingId !== null}
+                          />
+                        </label>
+                        <div className="min-w-0 flex-1 py-4">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-sm font-semibold text-slate-900">{r.documents?.name}</h3>
+                            {walkin && (
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                                Walk-in
+                              </span>
+                            )}
+                            {r.status === "Rejected" && (
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${meta.chip}`}>Rejected</span>
+                            )}
+                            {r.status === "Cancelled" && (
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${meta.chip}`}>Cancelled</span>
+                            )}
+                          </div>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-slate-500">
+                            <span className="font-mono">{r.tracking_code}</span>
+                            <span className="text-slate-300">•</span>
+                            <span>
+                              {r.copies} cop{r.copies > 1 ? "ies" : "y"}
                             </span>
+                            <span className="text-slate-300">•</span>
+                            <span>
+                              Requested {new Date(r.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}
+                            </span>
+                          </div>
+
+                          {p && (
+                            <div
+                              className={`mt-2 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[13px] font-medium ${
+                                p.when === "overdue" || p.when === "today"
+                                  ? "bg-red-50 text-red-700"
+                                  : p.when === "soon"
+                                  ? "bg-amber-50 text-amber-700"
+                                  : "bg-slate-100 text-slate-500"
+                              }`}
+                            >
+                              <Clock className="h-3.5 w-3.5" />
+                              {p.text}
+                            </div>
                           )}
-                          <p className="text-xs text-slate-500">
-                            {r.tracking_code} · copied {r.copies}× ·{" "}
-                            {new Date(r.created_at).toLocaleDateString()}
-                          </p>
-                          {r.pickup_at && (
-                            <p className="text-xs font-medium text-indigo-700">
-                              Pickup scheduled: {formatPickup(new Date(r.pickup_at))}
+
+                          {r.documents?.name === "Good Moral Certificate" && (
+                            <p className="mt-2 text-xs text-slate-500">
+                              Guidance approval:{" "}
+                              <span className={`badge ${r.guidance_status === "Approved" ? "bg-emerald-50 text-emerald-700" : r.guidance_status === "Rejected" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>
+                                {r.guidance_status ?? "Pending"}
+                              </span>
                             </p>
                           )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {(r.status === "Processing" || r.status === "Ready for Pickup") && !isWalkIn(r) && (
-                            <button
-                              type="button"
-                              onClick={() => handleStatusChange(r, "Ready for Pickup")}
-                              className="btn-outline px-3 py-2 text-xs"
-                              disabled={updatingId !== null}
-                            >
-                              {r.pickup_at ? "Reschedule Pickup" : "Schedule Pickup"}
-                            </button>
+                          {r.documents?.name === "Certificate of Enrollment" && r.class_list && (
+                            <p className="mt-2 whitespace-pre-line text-xs text-slate-600">Class list: {r.class_list}</p>
                           )}
-                          <select
-                            className="input w-auto"
-                            value={r.status}
-                            disabled={updatingId === r.id || (r.status as string) === "Completed" || (r.status as string) === "Rejected" || (r.status as string) === "Cancelled"}
-                            onChange={(e) => handleStatusChange(r, e.target.value)}
-                          >
-                            <option value={r.status} disabled>
-                              {r.status} — current
-                            </option>
-                            {nextStatuses(r.status, isWalkIn(r)).map((s) => (
-                              <option key={s}>{s}</option>
-                            ))}
-                          </select>
+                        </div>
+
+                        <div className="flex flex-col items-end gap-2.5 py-4 pr-4">
+                          <div className="inline-flex items-center gap-0 rounded-full bg-slate-100 p-1">
+                            {steps.map((s, i) => {
+                              const isCurrent = i === idx;
+                              const done = idx > i;
+                              const label = i === idx ? r.status : s.label;
+                              return (
+                                <button
+                                  key={s.label}
+                                  onClick={() => handleStepClick(r, i)}
+                                  disabled={updatingId !== null || isCurrent}
+                                  aria-current={isCurrent}
+                                  data-done={done || undefined}
+                                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px] font-medium transition-colors ${
+                                    isCurrent
+                                      ? "bg-white text-slate-900 shadow-sm"
+                                      : done
+                                      ? "text-slate-500 hover:text-slate-800"
+                                      : "text-slate-400 hover:text-slate-700"
+                                  } disabled:cursor-default`}
+                                >
+                                  {done && <Check className="h-3 w-3 text-emerald-600" strokeWidth={3} />}
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {(r.status === "Processing" || r.status === "Ready for Pickup") && !walkin && (
+                              <button
+                                onClick={() => openPickupModal(r)}
+                                disabled={updatingId !== null}
+                                className="rounded-lg border border-transparent px-2 py-1 text-[13px] font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 disabled:opacity-40"
+                              >
+                                Reschedule
+                              </button>
+                            )}
+                            {next && (
+                              <button
+                                onClick={() => handleNext(r)}
+                                disabled={updatingId !== null}
+                                className="rounded-lg bg-brand-600 px-3 py-1 text-[13px] font-medium text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+                              >
+                                {next.label}
+                              </button>
+                            )}
+                            {!isTerminal(r) && (
+                              <button
+                                onClick={() => {
+                                  if (!window.confirm(`Reject "${r.documents?.name}" (${r.tracking_code})?`)) return;
+                                  updateStatus(r, walkin ? "Cancelled" : "Rejected");
+                                }}
+                                disabled={updatingId !== null}
+                                className="rounded-lg border border-transparent px-2 py-1 text-[13px] font-medium text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                              >
+                                {walkin ? "Cancel" : "Reject"}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
-
-                      {r.documents?.name === "Good Moral Certificate" && (
-                        <p className="text-xs">
-                          Guidance approval:{" "}
-                          <span
-                            className={`badge ${
-                              r.guidance_status === "Approved"
-                                ? "bg-emerald-50 text-emerald-700"
-                                : r.guidance_status === "Rejected"
-                                ? "bg-red-50 text-red-700"
-                                : "bg-amber-50 text-amber-700"
-                            }`}
-                          >
-                            {r.guidance_status ?? "Pending"}
-                          </span>
-                        </p>
-                      )}
-
-                      {r.documents?.name === "Certificate of Enrollment" && r.class_list && (
-                        <p className="whitespace-pre-line text-xs text-slate-600">
-                          Class list: {r.class_list}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
+                    </article>
+                  );
+                })}
+              </section>
             );
           })}
         </div>
       )}
 
-      {pickupRequest && (
+      {pickupTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl">
-            <h3 className="text-base font-bold text-brand-900">Schedule Pickup</h3>
+            <h3 className="text-base font-bold text-slate-900">
+              {pickupTarget.kind === "bulk" ? `Schedule pickup — ${pickupTarget.docs.length} requests` : "Schedule Pickup"}
+            </h3>
             <p className="mt-1 text-sm text-slate-500">
-              Choose the date and time the student should claim {pickupRequest.documents?.name} (
-              {pickupRequest.tracking_code}). The request will be set to{" "}
-              <strong className="text-indigo-700">Ready for Pickup</strong>. You mark it{" "}
-              <strong className="text-emerald-700">Completed</strong> only after the document has been
-              handed to the student.
+              {pickupTarget.kind === "bulk"
+                ? "The selected requests will be set to Ready for Pickup."
+                : `${pickupTarget.r.documents?.name} (${pickupTarget.r.tracking_code}) will be set to Ready for Pickup.`}{" "}
+              You mark it{" "}
+              <strong className="text-emerald-700">Completed</strong> only after the document has been handed to the student.
             </p>
             <div className="mt-4 space-y-3">
               <div>
                 <label className="label">Pickup date</label>
-                <input
-                  type="date"
-                  className="input"
-                  value={pickupDate}
-                  onChange={(e) => setPickupDate(e.target.value)}
-                />
+                <input type="date" className="input" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} />
               </div>
               <div>
                 <label className="label">Pickup time</label>
-                <input
-                  type="time"
-                  className="input"
-                  value={pickupTime}
-                  onChange={(e) => setPickupTime(e.target.value)}
-                />
+                <input type="time" className="input" value={pickupTime} onChange={(e) => setPickupTime(e.target.value)} />
               </div>
             </div>
             <div className="mt-5 flex justify-end gap-2">
-              <button className="btn-outline px-3 py-2 text-xs" onClick={() => setPickupRequest(null)}>
+              <button className="btn-outline px-3 py-2 text-xs" onClick={() => setPickupTarget(null)}>
                 Cancel
               </button>
-              <button className="btn btn-primary" onClick={schedulePickup} disabled={updatingId !== null}>
+              <button className="btn btn-primary" onClick={verifyPickupSchedule} disabled={updatingId !== null}>
                 {updatingId !== null ? "Saving…" : "Save Schedule"}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <div
+        className={`fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-full bg-slate-900 py-2.5 pl-5 pr-2.5 text-white shadow-2xl transition-transform ${
+          selected.size > 0 ? "translate-y-0" : "translate-y-[150%]"
+        }`}
+      >
+        <span className="text-[13.5px] font-semibold">{selected.size} selected</span>
+        {selectedDocs.length > 0 && (
+          <PrintDocument
+            docs={selectedDocs.map(toPrintDoc)}
+            label={`Print slips (${selectedDocs.length})`}
+            triggerClass="inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-white/25"
+          />
+        )}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => bulkAction("ready")}
+            className="rounded-full bg-white px-3.5 py-1.5 text-[13px] font-semibold text-slate-900 transition-colors hover:bg-slate-200"
+          >
+            Mark ready for pickup
+          </button>
+          <button
+            onClick={() => bulkAction("released")}
+            className="rounded-full bg-white/15 px-3.5 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-white/25"
+          >
+            Mark released
+          </button>
+          <button
+            onClick={() => setSelected(new Set())}
+            className="rounded-full p-1.5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
+            aria-label="Clear selection"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

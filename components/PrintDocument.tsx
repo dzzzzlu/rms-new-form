@@ -453,15 +453,26 @@ function certificate(doc: PrintDoc) {
   }
 }
 
-export default function PrintDocument({ docs }: { docs: PrintDoc[] }) {
+export default function PrintDocument({
+  docs,
+  label,
+  triggerClass,
+}: {
+  docs: PrintDoc[];
+  label?: string;
+  triggerClass?: string;
+}) {
   const [open, setOpen] = useState(false);
   const count = docs.length;
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="btn-outline flex items-center gap-2">
+      <button
+        onClick={() => setOpen(true)}
+        className={triggerClass ?? "btn-outline flex items-center gap-2"}
+      >
         <Printer className="h-4 w-4" />
-        Print Paper{count > 1 ? ` (${count} docs)` : ""}
+        {label ?? `Print Paper${count > 1 ? ` (${count} docs)` : ""}`}
       </button>
     );
   }
