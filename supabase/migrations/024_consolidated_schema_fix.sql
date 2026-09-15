@@ -124,5 +124,6 @@ create trigger on_request_insert_notify_staff
 
 -- 9) Any signed-in user may leave a bell notification (chat messages)
 drop policy if exists "notifications_insert_staff" on notifications;
+drop policy if exists "notifications_insert_any" on notifications;
 create policy "notifications_insert_any" on notifications
   for insert with check (auth.role() = 'authenticated');
