@@ -22,7 +22,17 @@ async function findAuthUserByEmail(email: string) {
 
 export async function POST(req: Request) {
   try {
-    const { email, code } = await req.json();
+    const {
+      email,
+      code,
+      password,
+      full_name,
+      student_number,
+      course,
+      contact_number,
+      is_alumni,
+      school_year,
+    } = await req.json();
     if (!email || !code) return NextResponse.json({ error: "Email and code are required." }, { status: 400 });
 
     const { data: verification } = await supabase
@@ -43,73 +53,111 @@ export async function POST(req: Request) {
 
     await supabase.from("email_verifications").update({ used: true }).eq("id", verification.id);
 
-    let { data: profile } = await supabase
-      .from("profiles")
-      .select("id, full_name, is_active, email_verified")
-      .eq("email", email)
-      .maybeSingle();
+    // Two-phase registration: the account does NOT exist yet until the code is
+    // verified. The register page only sent the verification code + kept the
+    // details on the device, so the email is never "taken" before ownership is
+    // proven. Here we create the auth user (pending approval, email confirmed).
+    let authUserId: string | null = null;
+    const meta = {
+      full_name,
+      student_number,
+      course,
+      contact_number,
+      is_alumni: Boolean(is_alumni),
+      school_year: school_year ?? null,
+    };
 
-    // If the signup trigger never created a profile row, recreate it from the
-    // auth user so verification can finish instead of failing with an error.
-    if (!profile) {
-      const authUser = await findAuthUserByEmail(email);
-      if (!authUser) {
-        return NextResponse.json({ error: "No account found for this email." }, { status: 400 });
-      }
-
-      // The profile may already exist for this auth user id even if the email
-      // lookup above missed it — reuse it instead of inserting a duplicate.
-      const { data: existingById } = await supabase
-        .from("profiles")
-        .select("id, full_name, is_active, email_verified")
-        .eq("id", authUser.id)
-        .maybeSingle();
-      if (existingById) {
-        profile = existingById;
-      } else {
-        const meta = authUser.user_metadata ?? {};
-        const { data: created, error: insertErr } = await supabase
-          .from("profiles")
-          .insert({
-            id: authUser.id,
-            full_name: meta.full_name ?? authUser.email ?? email,
-            email: authUser.email ?? email,
-            role: "student",
-            student_number: meta.student_number ?? null,
-            course: meta.course ?? null,
-            contact_number: meta.contact_number ?? null,
-            is_alumni: meta.is_alumni ?? false,
-            school_year: meta.school_year ?? null,
-            is_active: false,
-            email_verified: false,
-          })
-          .select("id, full_name, is_active, email_verified")
-          .single();
-        if (insertErr || !created) {
-          console.error("Profile recreate error:", insertErr?.message ?? insertErr);
-          return NextResponse.json(
-            { error: `Could not create the profile for this account. ${insertErr?.message ?? ""}` },
-            { status: 500 }
-          );
+    if (password) {
+      const { data: created, error: createErr } = await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: meta,
+      });
+      if (createErr) {
+        // Already exists (e.g. orphaned user from the old flow) → reuse it and
+        // refresh the password to the one the user just chose.
+        if (/already|exists|registered/i.test(createErr.message)) {
+          const existing = await findAuthUserByEmail(email);
+          if (!existing) {
+            return NextResponse.json({ error: createErr.message }, { status: 500 });
+          }
+          authUserId = existing.id;
+        } else {
+          return NextResponse.json({ error: createErr.message }, { status: 500 });
         }
-        profile = created;
+      } else {
+        authUserId = created.user?.id ?? null;
       }
     }
 
-    const { error: updateErr } = await supabase.auth.admin.updateUserById(profile.id, {
+    if (!authUserId) {
+      const existing = await findAuthUserByEmail(email);
+      if (!existing) {
+        return NextResponse.json(
+          { error: "No account found for this email. Please register again." },
+          { status: 400 }
+        );
+      }
+      authUserId = existing.id;
+    }
+
+    // Ensure a profile row exists for the auth user (the signup trigger is not
+    // guaranteed to have run on every database), otherwise create it from the
+    // auth user metadata so pending approval + login work.
+    let { data: profile } = await supabase
+      .from("profiles")
+      .select("id, full_name, is_active, email_verified")
+      .eq("id", authUserId)
+      .maybeSingle();
+
+    if (!profile) {
+      const authUser = await findAuthUserByEmail(email);
+      const userMeta = authUser?.user_metadata ?? meta;
+      const { data: created, error: insertErr } = await supabase
+        .from("profiles")
+        .insert({
+          id: authUserId,
+          full_name: userMeta.full_name ?? authUser?.email ?? email,
+          email: authUser?.email ?? email,
+          role: "student",
+          student_number: userMeta.student_number ?? null,
+          course: userMeta.course ?? null,
+          contact_number: userMeta.contact_number ?? null,
+          is_alumni: Boolean(userMeta.is_alumni),
+          school_year: userMeta.school_year ?? null,
+          is_active: false,
+          email_verified: false,
+        })
+        .select("id, full_name, is_active, email_verified")
+        .single();
+      if (insertErr || !created) {
+        console.error("Profile recreate error:", insertErr?.message ?? insertErr);
+        return NextResponse.json(
+          { error: `Could not create the profile for this account. ${insertErr?.message ?? ""}` },
+          { status: 500 }
+        );
+      }
+      profile = created;
+    }
+
+    const wasFirstVerification = profile.email_verified === false;
+
+    const { error: updateErr } = await supabase.auth.admin.updateUserById(authUserId, {
       email_confirm: true,
+      ...(password ? { password } : {}),
     });
     if (updateErr) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
     }
 
-    await supabase.from("profiles").update({ email_verified: true }).eq("id", profile.id);
+    await supabase.from("profiles").update({ email_verified: true }).eq("id", authUserId);
 
-    // First-time verification → new signup is now pending admin approval.
-    // Force it inactive (even if the DB trigger hasn't been applied yet), put
-    // it in the Admin Approvals queue, and tell admins on the bell.
-    if (profile.email_verified === false) {
-      await supabase.from("profiles").update({ is_active: false }).eq("id", profile.id);
+    // First-time verification → the new account is now PENDING admin approval:
+    // force it inactive (so it cannot sign in), put it in the Admin Approvals
+    // queue, email the student, and tell admins on the bell.
+    if (wasFirstVerification) {
+      await supabase.from("profiles").update({ is_active: false }).eq("id", authUserId);
 
       try {
         await sendEmailJS({

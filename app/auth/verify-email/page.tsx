@@ -30,10 +30,34 @@ function VerifyEmailForm() {
     setLoading(true);
 
     try {
+      const body: Record<string, unknown> = { email, code };
+
+      // Two-phase registration: the details were kept on this device by the
+      // register page and are only handed to the server once the code is right.
+      try {
+        const pending = sessionStorage.getItem("pending_signup");
+        if (pending) {
+          const p = JSON.parse(pending) as Record<string, unknown>;
+          if (p.email === email) {
+            Object.assign(body, {
+              password: p.password ?? "",
+              full_name: p.full_name ?? "",
+              student_number: p.student_number ?? "",
+              course: p.course ?? "",
+              contact_number: p.contact_number ?? "",
+              is_alumni: Boolean(p.is_alumni),
+              school_year: p.school_year ?? "",
+            });
+          }
+        }
+      } catch {
+        // ignore malformed pending data
+      }
+
       const res = await fetch("/api/auth/verify-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
 
@@ -43,6 +67,7 @@ function VerifyEmailForm() {
         return;
       }
 
+      sessionStorage.removeItem("pending_signup");
       setSuccess(true);
       toast.success("Email verified!");
     } catch {

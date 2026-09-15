@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 import { CheckCircle2 } from "lucide-react";
 import {
   validateFullName,
@@ -36,7 +35,6 @@ const SCHOOL_YEARS = [
 
 export default function RegisterPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [form, setForm] = useState({
     full_name: "",
     student_number: "",
@@ -84,31 +82,6 @@ export default function RegisterPage() {
 
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/confirm`,
-        data: {
-          full_name: form.full_name,
-          student_number: form.student_number,
-          course: form.course,
-          contact_number: form.contact_number,
-          is_alumni: form.is_alumni,
-          school_year: form.is_alumni ? form.school_year : null,
-        },
-      },
-    });
-
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-      return;
-    }
-
-    // Make sure the new account has no active session until verified.
-    await supabase.auth.signOut();
-
     let sendErrorMsg = "";
     try {
       const res = await fetch("/api/auth/send-verification", {
@@ -123,6 +96,24 @@ export default function RegisterPage() {
     } catch {
       sendErrorMsg = "Could not reach the server.";
     }
+
+    // Do NOT create the account yet. The email has to be verified first, so the
+    // address is never "taken" before the user proves they own it. The details
+    // stay on this device and the real account is only created after the
+    // 6-digit code is confirmed on the verify page.
+    sessionStorage.setItem(
+      "pending_signup",
+      JSON.stringify({
+        email: form.email,
+        password: form.password,
+        full_name: form.full_name,
+        student_number: form.student_number,
+        course: form.course,
+        contact_number: form.contact_number,
+        is_alumni: form.is_alumni,
+        school_year: form.is_alumni ? form.school_year : "",
+      })
+    );
 
     setLoading(false);
     const params = new URLSearchParams({ email: form.email });
