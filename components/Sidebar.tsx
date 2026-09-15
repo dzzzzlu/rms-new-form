@@ -95,7 +95,7 @@ export default function Sidebar({
     fetchUnread();
     const interval = setInterval(fetchUnread, 30000);
     return () => { mounted = false; clearInterval(interval); };
-  }, [userId]);
+  }, [userId, pathname]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
