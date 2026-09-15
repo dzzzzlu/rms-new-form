@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -66,17 +67,35 @@ const ROLE_LABEL: Record<Role, string> = {
 export default function Sidebar({
   role,
   fullName,
+  userId,
   open,
   onClose,
 }: {
   role: Role;
   fullName: string;
+  userId: string;
   open: boolean;
   onClose: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchUnread() {
+      const { count } = await supabase
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("receiver_id", userId)
+        .eq("is_read", false);
+      if (mounted) setUnreadCount(count ?? 0);
+    }
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => { mounted = false; clearInterval(interval); };
+  }, [userId]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -136,7 +155,12 @@ export default function Sidebar({
                       }`}
                   >
                     <Icon className="h-[18px] w-[18px] shrink-0" />
-                    {item.label}
+                    <span className="flex-1">{item.label}</span>
+                    {item.label === "Messages" && unreadCount > 0 && (
+                      <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
                   </Link>
                 </li>
               );
