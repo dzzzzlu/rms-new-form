@@ -30,6 +30,8 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<UserProfile | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [me, setMe] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
   const [page, setPage] = useState(1);
@@ -37,6 +39,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     loadUsers();
+    supabase.auth.getUser().then(({ data }) => setMe(data.user?.id ?? null));
   }, []);
 
   async function loadUsers() {
@@ -84,6 +87,24 @@ export default function AdminUsersPage() {
       return;
     }
     toast.success(`User ${action}d.`);
+    loadUsers();
+  }
+
+  async function deleteUser(u: UserProfile) {
+    if (!window.confirm(`Permanently delete ${u.full_name} (${u.email})? Their account and all related data will be removed. This cannot be undone.`)) return;
+    setDeletingId(u.id);
+    const res = await fetch("/api/admin/reject-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: u.id }),
+    });
+    setDeletingId(null);
+    if (!res.ok) {
+      const { error } = await res.json().catch(() => ({}));
+      toast.error("Failed to delete user: " + (error ?? res.statusText));
+      return;
+    }
+    toast.success("User deleted.");
     loadUsers();
   }
 
@@ -154,6 +175,13 @@ export default function AdminUsersPage() {
                     <button onClick={() => setEditing(u)} className="text-sm font-medium text-brand-600 hover:underline">Edit</button>
                     <button onClick={() => toggleActive(u.id, u.is_active)} className={`text-sm font-medium hover:underline ${u.is_active ? "text-red-600" : "text-emerald-600"}`}>
                       {u.is_active ? "Archive" : "Activate"}
+                    </button>
+                    <button
+                      onClick={() => deleteUser(u)}
+                      disabled={deletingId === u.id || u.id === me}
+                      className="text-sm font-medium text-red-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {deletingId === u.id ? "Deleting…" : u.id === me ? "You" : "Delete"}
                     </button>
                   </td>
                 </tr>
