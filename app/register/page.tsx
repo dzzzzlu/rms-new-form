@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   validateNamePart,
   validateEmail,
@@ -76,10 +76,7 @@ export default function RegisterPage() {
     if (snErr) return snErr;
     if (!form.course) return "Please select your course.";
     if (!form.enrollment_status) return "Please select your enrollment status.";
-    if (
-      (form.enrollment_status === "Currently Enrolled" || form.enrollment_status === "On Leave") &&
-      !form.year_level
-    ) {
+    if (form.enrollment_status === "Currently Enrolled" && !form.year_level) {
       return "Please select your year level.";
     }
     const phoneErr = validateContactNumber(form.contact_number);
@@ -167,8 +164,7 @@ export default function RegisterPage() {
     router.push(`/auth/verify-email?${params.toString()}`);
   }
 
-  const needsYear =
-    form.enrollment_status === "Currently Enrolled" || form.enrollment_status === "On Leave";
+  const enrolledOnly = form.enrollment_status === "Currently Enrolled";
 
   return (
     <main className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-900 via-brand-700 to-brand-500 px-4 py-10">
@@ -275,6 +271,7 @@ export default function RegisterPage() {
                     className="input"
                     value={form.last_name}
                     onChange={(e) => update("last_name", e.target.value)}
+                    placeholder="Dela Cruz"
                   />
                 </div>
                 <div>
@@ -284,6 +281,7 @@ export default function RegisterPage() {
                     className="input"
                     value={form.first_name}
                     onChange={(e) => update("first_name", e.target.value)}
+                    placeholder="Juan"
                   />
                 </div>
                 <div>
@@ -292,6 +290,7 @@ export default function RegisterPage() {
                     className="input"
                     value={form.middle_name}
                     onChange={(e) => update("middle_name", e.target.value)}
+                    placeholder="Santos"
                   />
                 </div>
               </div>
@@ -303,58 +302,70 @@ export default function RegisterPage() {
                     className="input"
                     value={form.student_number}
                     onChange={(e) => update("student_number", e.target.value)}
+                    placeholder="2023156251"
                   />
                 </div>
                 <div>
                   <label className="label">Course</label>
-                  <select
-                    required
-                    className="input"
-                    value={form.course}
-                    onChange={(e) => update("course", e.target.value)}
-                  >
-                    <option value="">Select course…</option>
-                    {COURSES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      required
+                      className="input cursor-pointer appearance-none pr-9"
+                      value={form.course}
+                      onChange={(e) => update("course", e.target.value)}
+                    >
+                      <option value="">Select course…</option>
+                      {COURSES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  </div>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="label">Enrollment Status</label>
-                  <select
-                    required
-                    className="input"
-                    value={form.enrollment_status}
-                    onChange={(e) => update("enrollment_status", e.target.value)}
-                  >
-                    <option value="">Select status…</option>
-                    {ENROLLMENT_STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      required
+                      className="input cursor-pointer appearance-none pr-9"
+                      value={form.enrollment_status}
+                      onChange={(e) => update("enrollment_status", e.target.value)}
+                    >
+                      <option value="">Select status…</option>
+                      {ENROLLMENT_STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  </div>
                 </div>
                 <div>
                   <label className="label">Year Level</label>
-                  <select
-                    required={needsYear}
-                    className="input"
-                    value={form.year_level}
-                    onChange={(e) => update("year_level", e.target.value)}
-                    disabled={!needsYear}
-                  >
-                    <option value="">
-                      {needsYear ? "Select year level…" : "Not applicable"}
-                    </option>
-                    {YEAR_LEVELS.map((y) => (
-                      <option key={y} value={y}>
-                        {y}
+                  <div className="relative">
+                    <select
+                      className="input cursor-pointer appearance-none pr-9 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                      disabled={!enrolledOnly}
+                      value={enrolledOnly ? form.year_level : ""}
+                      onChange={(e) => update("year_level", e.target.value)}
+                    >
+                      <option value="">
+                        {enrolledOnly ? "Select year level…" : "Not applicable"}
                       </option>
-                    ))}
-                  </select>
+                      {YEAR_LEVELS.map((y) => (
+                        <option key={y} value={y}>
+                          {y}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  </div>
                 </div>
               </div>
 
@@ -366,22 +377,26 @@ export default function RegisterPage() {
                   onChange={(e) => update("contact_number", e.target.value)}
                   placeholder="09XX XXX XXXX"
                 />
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
                   Used for pickup reminders when your documents are ready.
                 </p>
               </div>
 
-              <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+              <label className="flex items-start gap-2.5 pt-1">
                 <input
                   type="checkbox"
                   checked={form.consent}
                   onChange={(e) => update("consent", e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-400"
+                  className="mt-1 h-4 w-4 shrink-0 accent-brand-500"
                 />
-                <span>
+                <span className="text-[13px] leading-relaxed text-slate-600">
                   I consent to Regis Marie College collecting and processing the personal
                   information I provide here and on my document requests, in line with the{" "}
-                  <Link href="/privacy" target="_blank" className="font-medium text-brand-600 underline">
+                  <Link
+                    href="/privacy"
+                    target="_blank"
+                    className="font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-900"
+                  >
                     Data Privacy notice
                   </Link>
                   .
@@ -390,23 +405,23 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <div className="mt-6 flex items-center justify-between gap-3">
+          <div className="mt-6 flex items-center gap-3">
             {step === 2 ? (
               <>
                 <button
                   type="button"
                   onClick={back}
                   disabled={loading}
-                  className="btn-outline flex items-center gap-1"
+                  className="btn-outline flex-none px-5"
                 >
                   <ChevronLeft className="h-4 w-4" /> Back
                 </button>
-                <button type="submit" disabled={loading} className="btn-primary flex items-center gap-1">
+                <button type="submit" disabled={loading} className="btn-primary flex-1">
                   {loading ? "Creating account…" : "Create Account"}
                 </button>
               </>
             ) : (
-              <button type="button" onClick={next} className="btn-primary ml-auto flex items-center gap-1">
+              <button type="button" onClick={next} className="btn-primary ml-auto">
                 Continue <ChevronRight className="h-4 w-4" />
               </button>
             )}
