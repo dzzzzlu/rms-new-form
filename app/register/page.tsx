@@ -116,8 +116,8 @@ export default function RegisterPage() {
 
     setLoading(true);
 
-    const fullName = [form.last_name.trim().toUpperCase(), form.first_name.trim()]
-      .concat(form.middle_name.trim() ? [form.middle_name.trim()] : [])
+    const fullName = [form.first_name.trim(), form.middle_name.trim(), form.last_name.trim()]
+      .filter(Boolean)
       .join(" ");
     const isAlumni = form.enrollment_status === "Graduated" || form.enrollment_status === "Alumni";
 

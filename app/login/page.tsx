@@ -284,7 +284,7 @@ function LoginForm() {
               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 lg:hidden">
                 <Image src="/rmclogo.jpg" alt="Regis Marie College" width={40} height={40} className="rounded-lg" />
               </div>
-              <h2 className="text-2xl font-bold text-brand-900">Welcome back</h2>
+              <h2 className="text-2xl font-bold text-brand-900">Welcome to Regis Marie</h2>
               <p className="mt-1 text-sm text-slate-500">Sign in to your account to continue</p>
             </div>
 

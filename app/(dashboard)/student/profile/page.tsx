@@ -39,12 +39,11 @@ type HistoryItem = {
 };
 
 function displayName(p: Profile): string {
-  if (p.last_name) {
-    const first = p.first_name ?? "";
-    const middle = p.middle_name ? ` ${p.middle_name}` : "";
-    return `${p.last_name.toUpperCase()}, ${first}${middle}`.trim();
-  }
-  return [p.first_name, p.middle_name, p.last_name].filter(Boolean).join(" ") || p.full_name;
+  const parts = [p.first_name, p.middle_name, p.last_name]
+    .filter(Boolean)
+    .map((s) => String(s).trim())
+    .filter(Boolean);
+  return parts.length ? parts.join(" ") : p.full_name;
 }
 
 export default function ProfilePage() {
