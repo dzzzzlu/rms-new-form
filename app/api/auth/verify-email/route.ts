@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendEmailJS } from "@/lib/emailjs";
+import { accountWaitingApproval } from "@/lib/email-templates";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,7 +33,7 @@ export async function POST(req: Request) {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id")
+      .select("id, full_name")
       .eq("email", email)
       .single();
     if (!profile) {
@@ -46,6 +48,16 @@ export async function POST(req: Request) {
     }
 
     await supabase.from("profiles").update({ email_verified: true }).eq("id", profile.id);
+
+    try {
+      await sendEmailJS({
+        to: email,
+        subject: "Your Account Is Waiting for Approval — Regis Marie College",
+        html: accountWaitingApproval(profile.full_name ?? "there"),
+      });
+    } catch (err) {
+      console.error("Waiting-for-approval email error:", err);
+    }
 
     return NextResponse.json({ success: true });
   } catch {

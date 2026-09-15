@@ -65,6 +65,20 @@ export const emailVerification = (code: string) =>
      <p style="color:#64748b;font-size:12px;">This code expires in 10 minutes. If you didn't create an account, ignore this email.</p>`
   );
 
+export const accountWaitingApproval = (studentName: string) =>
+  wrapper(
+    "Your Account Is Waiting for Approval",
+    `<p style="color:#334155;font-size:14px;">Hi <strong>${studentName}</strong>,</p>
+     <p style="color:#334155;font-size:14px;">Thanks for signing up. Your account has been created but is not active yet — a registrar admin needs to approve it first.</p>
+     <p style="color:#334155;font-size:14px;"><strong>What happens next:</strong></p>
+     <ul style="color:#334155;font-size:14px;text-align:left;padding-left:20px;">
+       <li>An admin reviews your details, usually within 1–2 business days.</li>
+       <li>You'll get an email the moment your account is approved.</li>
+       <li>After that, you can sign in and start submitting document requests.</li>
+     </ul>
+     <p style="color:#334155;font-size:14px;">You don't need to do anything right now. If you signed up with the wrong student number or email, reply to this message and we'll correct it before the review.</p>`
+  );
+
 export const accountApproved = (studentName: string) =>
   wrapper(
     "Account Approved",

@@ -149,7 +149,7 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
           .single();
         const partner = allProfiles.find((p) => p.id === activePartner);
         const partnerRole = partner?.role ?? "";
-        if (partnerRole !== "guidance") {
+        if (partnerRole !== "guidance" && partnerRole !== "admin") {
           const msgLink = ["student", "registrar", "admin", "guidance"].includes(partnerRole)
             ? `/${partnerRole}/messages`
             : "";

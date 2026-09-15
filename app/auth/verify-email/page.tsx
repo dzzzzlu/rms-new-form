@@ -102,7 +102,11 @@ function VerifyEmailForm() {
             </svg>
           </div>
           <h2 className="text-xl font-bold text-slate-800">Email Verified!</h2>
-          <p className="text-slate-500">Redirecting you to the login page...</p>
+          <p className="text-sm text-slate-600">Your account is now waiting for approval.</p>
+          <p className="text-xs text-slate-400">
+            A registrar admin will review your registration — you&#39;ll receive an email once your account is approved.
+          </p>
+          <p className="text-slate-500 text-sm">Redirecting you to the login page...</p>
         </div>
       </div>
     );

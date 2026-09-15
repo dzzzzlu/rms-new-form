@@ -137,7 +137,7 @@ function LoginForm() {
 
     if (profile && !profile.is_active) {
       await supabase.auth.signOut();
-      setError("This account has been archived. Please contact the administrator.");
+      setError("Your account is waiting for approval. An admin will review your registration shortly — you'll receive an email once approved.");
       setLoading(false);
       return;
     }
