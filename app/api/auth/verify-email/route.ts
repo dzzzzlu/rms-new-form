@@ -155,7 +155,9 @@ export async function POST(req: Request) {
 
     // First-time verification → the new account is now PENDING admin approval:
     // force it inactive (so it cannot sign in), put it in the Admin Approvals
-    // queue, email the student, and tell admins on the bell.
+    // queue, and email the student. The "New signup pending approval" bell
+    // notification is created by the DB trigger on_profile_insert_notify_admins
+    // when the profile row is inserted (during auth user creation).
     if (wasFirstVerification) {
       await supabase.from("profiles").update({ is_active: false }).eq("id", authUserId);
 
@@ -167,21 +169,6 @@ export async function POST(req: Request) {
         });
       } catch (err) {
         console.error("Waiting-for-approval email error:", err);
-      }
-
-      const { data: admins } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("role", "admin")
-        .eq("is_active", true);
-      if (admins && admins.length > 0) {
-        await supabase.from("notifications").insert(
-          admins.map((a) => ({
-            user_id: a.id,
-            message: `New signup pending approval: ${profile.full_name ?? "New student"} (${email})`,
-            link: "/admin/approvals",
-          }))
-        );
       }
     }
 
