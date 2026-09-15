@@ -6,10 +6,12 @@ import NotificationBell from "./NotificationBell";
 export default function Topbar({
   title,
   userId,
+  role,
   onMenuClick,
 }: {
   title: string;
   userId: string;
+  role: "student" | "registrar" | "admin" | "guidance";
   onMenuClick: () => void;
 }) {
   return (
@@ -24,7 +26,7 @@ export default function Topbar({
         </button>
         <h1 className="text-lg font-semibold text-brand-900">{title}</h1>
       </div>
-      <NotificationBell userId={userId} />
+      <NotificationBell userId={userId} role={role} />
     </header>
   );
 }

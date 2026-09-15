@@ -25,7 +25,7 @@ export default function DashboardShell({
     <div className="min-h-screen bg-slate-50">
       <Sidebar role={role} fullName={fullName} userId={userId} open={open} onClose={() => setOpen(false)} />
       <div className="lg:pl-64">
-        <Topbar title={title} userId={userId} onMenuClick={() => setOpen((o) => !o)} />
+        <Topbar title={title} userId={userId} role={role} onMenuClick={() => setOpen((o) => !o)} />
         <main className="p-5">{children}</main>
       </div>
     </div>

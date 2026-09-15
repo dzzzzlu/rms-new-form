@@ -14,13 +14,16 @@ type Notification = {
   request_id: number | null;
 };
 
-export default function NotificationBell({ userId }: { userId: string }) {
+export default function NotificationBell({ userId, role }: { userId: string; role: "student" | "registrar" | "admin" | "guidance" }) {
   const supabase = createClient();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const visible = notifications.filter(
+    (n) => !(role === "admin" || role === "guidance") || !n.message.startsWith("New document request:")
+  );
+  const unreadCount = visible.filter((n) => !n.is_read).length;
 
   async function load() {
     const { data } = await supabase
@@ -111,10 +114,10 @@ export default function NotificationBell({ userId }: { userId: string }) {
             )}
           </div>
           <div className="max-h-80 overflow-y-auto sm:max-h-96">
-            {notifications.length === 0 ? (
+            {visible.length === 0 ? (
               <p className="px-4 py-6 text-center text-sm text-slate-400">No notifications yet.</p>
             ) : (
-              notifications.map((n) =>
+              visible.map((n) =>
                 n.link ? (
                   <Link
                     key={n.id}

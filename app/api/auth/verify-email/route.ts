@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id, full_name")
+      .select("id, full_name, is_active, email_verified")
       .eq("email", email)
       .single();
     if (!profile) {
@@ -49,14 +49,36 @@ export async function POST(req: Request) {
 
     await supabase.from("profiles").update({ email_verified: true }).eq("id", profile.id);
 
-    try {
-      await sendEmailJS({
-        to: email,
-        subject: "Your Account Is Waiting for Approval — Regis Marie College",
-        html: accountWaitingApproval(profile.full_name ?? "there"),
-      });
-    } catch (err) {
-      console.error("Waiting-for-approval email error:", err);
+    // First-time verification → new signup is now pending admin approval.
+    // Force it inactive (even if the DB trigger hasn't been applied yet), put
+    // it in the Admin Approvals queue, and tell admins on the bell.
+    if (profile.email_verified === false) {
+      await supabase.from("profiles").update({ is_active: false }).eq("id", profile.id);
+
+      try {
+        await sendEmailJS({
+          to: email,
+          subject: "Your Account Is Waiting for Approval — Regis Marie College",
+          html: accountWaitingApproval(profile.full_name ?? "there"),
+        });
+      } catch (err) {
+        console.error("Waiting-for-approval email error:", err);
+      }
+
+      const { data: admins } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("role", "admin")
+        .eq("is_active", true);
+      if (admins && admins.length > 0) {
+        await supabase.from("notifications").insert(
+          admins.map((a) => ({
+            user_id: a.id,
+            message: `New signup pending approval: ${profile.full_name ?? "New student"} (${email})`,
+            link: "/admin/approvals",
+          }))
+        );
+      }
     }
 
     return NextResponse.json({ success: true });

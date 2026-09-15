@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
 
 function VerifyEmailForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
   const sendError = searchParams.get("sendError") === "1";
@@ -45,8 +44,7 @@ function VerifyEmailForm() {
       }
 
       setSuccess(true);
-      toast.success("Email verified! Redirecting to login...");
-      setTimeout(() => router.push("/login"), 2000);
+      toast.success("Email verified!");
     } catch {
       toast.error("Something went wrong.");
       setLoading(false);
@@ -106,7 +104,11 @@ function VerifyEmailForm() {
           <p className="text-xs text-slate-400">
             A registrar admin will review your registration — you&#39;ll receive an email once your account is approved.
           </p>
-          <p className="text-slate-500 text-sm">Redirecting you to the login page...</p>
+          <p className="text-base">
+            <Link href="/login" className="font-semibold text-brand-600 hover:underline">
+              Back to login
+            </Link>
+          </p>
         </div>
       </div>
     );
