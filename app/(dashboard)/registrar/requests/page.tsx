@@ -262,6 +262,8 @@ export default function ManageRequestsPage() {
     }
 
     setUpdatingId(null);
+    toast.success(`Status changed to "${status}".`);
+    load();
     return true;
   }
 
@@ -281,18 +283,6 @@ export default function ManageRequestsPage() {
       openPickupModal(r);
       return;
     }
-    if (target === "Completed") {
-      const confirmed = window.confirm(
-        `Mark "${r.documents?.name}" (${r.tracking_code}) as Completed? Confirm you have already handed the document to the student.`
-      );
-      if (!confirmed) return;
-      updateStatus(r, "Completed");
-      return;
-    }
-    if (currentIdx < 0 || stepIndex < currentIdx) {
-      const confirmed = window.confirm(`Move "${r.documents?.name}" (${r.tracking_code}) back to "${target}"?`);
-      if (!confirmed) return;
-    }
     updateStatus(r, target);
   }
 
@@ -302,13 +292,6 @@ export default function ManageRequestsPage() {
     if (action.status === "Ready for Pickup") {
       openPickupModal(r);
       return;
-    }
-    if (action.status === "Completed") {
-      if (guidanceBlocked(r, "Completed")) return;
-      const confirmed = window.confirm(
-        `Mark "${r.documents?.name}" (${r.tracking_code}) as Completed? Confirm you have already handed the document to the student.`
-      );
-      if (!confirmed) return;
     }
     updateStatus(r, action.status);
   }
