@@ -523,13 +523,11 @@ export default function PrintDocument({
   label,
   triggerClass,
   variant = "registrar",
-  directDocx = false,
 }: {
   docs: PrintDoc[];
   label?: string;
   triggerClass?: string;
   variant?: PrintVariant;
-  directDocx?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const count = docs.length;
@@ -562,10 +560,7 @@ export default function PrintDocument({
   if (!open) {
     return (
       <button
-        onClick={() => {
-          if (directDocx) void handleDownload();
-          else setOpen(true);
-        }}
+        onClick={() => setOpen(true)}
         className={triggerClass ?? "btn-outline flex items-center gap-2"}
       >
         <Printer className="h-4 w-4" />

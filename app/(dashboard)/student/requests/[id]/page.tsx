@@ -3,7 +3,7 @@ import { createClient, getProfile } from "@/lib/supabase/server";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import PrintDocument from "@/components/PrintDocument";
-import { titleCaseName } from "@/lib/validation";
+import { printName } from "@/lib/validation";
 
 const STATUS_COLOR: Record<string, string> = {
   Pending: "bg-slate-100 text-slate-700",
@@ -49,6 +49,9 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
 
   const schoolProfile = {
     full_name: profile.full_name,
+    first_name: profile.first_name,
+    middle_name: profile.middle_name,
+    last_name: profile.last_name,
     student_number: profile.student_number,
     course: profile.course,
   };
@@ -73,7 +76,12 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
               docs={[{
                 docName: doc?.name ?? "Document",
                 trackingCode: request.tracking_code,
-                fullName: titleCaseName(schoolProfile.full_name),
+                fullName: printName(
+                  schoolProfile.first_name,
+                  schoolProfile.middle_name,
+                  schoolProfile.last_name,
+                  schoolProfile.full_name
+                ),
                 studentNumber: schoolProfile.student_number,
                 course: schoolProfile.course,
                 copies: request.copies,

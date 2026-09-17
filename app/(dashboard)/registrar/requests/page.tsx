@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RequestWithRelations } from "@/lib/types";
 import { sendNotification } from "@/lib/notify";
-import { titleCaseName } from "@/lib/validation";
+import { printName, titleCaseName } from "@/lib/validation";
 import { Search, Inbox, Clock, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import PrintDocument, { type PrintDoc } from "@/components/PrintDocument";
@@ -114,7 +114,12 @@ function toPrintDoc(r: RequestWithRelations): PrintDoc {
   return {
     docName: r.documents?.name ?? "Document",
     trackingCode: r.tracking_code,
-    fullName: titleCaseName(r.profiles?.full_name ?? "Student"),
+    fullName: printName(
+      r.profiles?.first_name,
+      r.profiles?.middle_name,
+      r.profiles?.last_name,
+      r.profiles?.full_name ?? "Student"
+    ),
     studentNumber: r.profiles?.student_number ?? null,
     course: r.profiles?.course ?? null,
     copies: r.copies,
@@ -143,7 +148,7 @@ export default function ManageRequestsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     const select =
-      "id, tracking_code, batch_id, purpose, copies, status, pickup_at, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), payments(payment_method), profiles(full_name, student_number, course, contact_number, email)";
+      "id, tracking_code, batch_id, purpose, copies, status, pickup_at, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), payments(payment_method), profiles(full_name, first_name, middle_name, last_name, student_number, course, contact_number, email)";
     let { data, error } = await supabase
       .from("requests")
       .select(select)
@@ -504,9 +509,6 @@ export default function ManageRequestsPage() {
           {groups.map((group) => {
             const first = group[0];
             const student = first.profiles;
-            const isGoodMoralGroup = group.every(
-              (r) => r.documents?.name === "Good Moral Certificate"
-            );
             return (
               <section key={first.batch_id ?? `single-${first.id}`} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-gradient-to-b from-white to-slate-50 px-4 py-3">
@@ -524,7 +526,7 @@ export default function ManageRequestsPage() {
                     </div>
                   </div>
                   <span className="flex-1" />
-                  <PrintDocument docs={group.map(toPrintDoc)} variant="registrar" directDocx={isGoodMoralGroup} />
+                  <PrintDocument docs={group.map(toPrintDoc)} variant="registrar" />
                   <span className="sr-only">Print claim slips</span>
                 </div>
 

@@ -77,6 +77,9 @@ export interface RequestWithRelations extends Request {
   payments?: { payment_method: string | null }[];
   profiles: {
     full_name: string;
+    first_name: string | null;
+    middle_name: string | null;
+    last_name: string | null;
     student_number: string | null;
     course: string | null;
     contact_number: string | null;

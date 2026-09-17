@@ -28,6 +28,20 @@ export function titleCaseName(name: string): string {
     .replace(/(^|[\s'-])([a-z])/g, (_m, sep: string, ch: string) => sep + ch.toUpperCase());
 }
 
+export function printName(
+  first?: string | null,
+  middle?: string | null,
+  last?: string | null,
+  fallback?: string | null
+): string {
+  const f = titleCaseName(first ?? "");
+  const m = titleCaseName(middle ?? "");
+  const l = titleCaseName(last ?? "");
+  const initial = m ? `${m.charAt(0).toUpperCase()}.` : "";
+  const parts = [f, initial, l].filter(Boolean);
+  return parts.length ? parts.join(" ") : titleCaseName(fallback ?? "");
+}
+
 export function validateEmail(email: string): string | null {
   const s = sanitize(email);
   if (!s) return "Email is required.";
