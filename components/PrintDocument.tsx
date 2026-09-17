@@ -457,7 +457,7 @@ function certificate(doc: PrintDoc, variant: PrintVariant) {
     case "Good Moral Certificate":
       if (variant === "student") return genericCertificate(doc, issuedDateLong);
       return (
-        <div className="print-area border-2 border-double border-slate-800 p-6 text-slate-900">
+        <div className="print-area flex min-h-[297mm] flex-col border-2 border-double border-slate-800 p-8 text-slate-900 print:min-h-0">
           <div className="text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/rmclogo.jpg" alt="Regis Marie College" className="mx-auto h-14 w-14 rounded-md" />
@@ -478,7 +478,7 @@ function certificate(doc: PrintDoc, variant: PrintVariant) {
             </p>
           </div>
 
-          <p className="mt-5 text-xs font-bold">TO WHOM IT MAY CONCERN;</p>
+          <p className="mt-6 text-xs font-bold">TO WHOM IT MAY CONCERN;</p>
 
           <p className="mt-3 text-xs leading-relaxed">
             This is to certify that <b>{doc.fullName}</b> was a bona fide{" "}
@@ -493,23 +493,25 @@ function certificate(doc: PrintDoc, variant: PrintVariant) {
           </p>
           <p className="mt-3 text-xs leading-relaxed">Given this {issuedFormal}, Parañaque City.</p>
 
-          <p className="mt-12 text-xs font-bold">CERTIFIED BY:</p>
+          <div className="mt-auto pt-12">
+            <p className="text-xs font-bold">CERTIFIED BY:</p>
 
-          <div className="mt-10 flex items-end justify-end">
-            <div className="text-center">
-              <div className="border-t border-slate-500 px-6 pt-1">
-                <p className="text-sm font-semibold">{REGISTRAR}</p>
-                <p className="text-xs uppercase">College Registrar</p>
+            <div className="mt-10 flex items-end justify-end">
+              <div className="text-center">
+                <div className="border-t border-slate-500 px-6 pt-1">
+                  <p className="text-sm font-semibold">{REGISTRAR}</p>
+                  <p className="text-xs uppercase">College Registrar</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <p className="mt-10 text-center text-[11px] italic text-slate-600">
-            Not valid without the school dry seal.
-          </p>
-          <p className="mt-1 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-700">
-            Choose Excellence! Choose RMC!
-          </p>
+            <p className="mt-12 text-center text-[11px] italic text-slate-600">
+              Not valid without the school dry seal.
+            </p>
+            <p className="mt-1 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-700">
+              Choose Excellence! Choose RMC!
+            </p>
+          </div>
         </div>
       );
 
