@@ -471,7 +471,7 @@ function certificate(doc: PrintDoc, variant: PrintVariant) {
               www.regismariecollege.com
             </p>
             <div className="mx-auto mt-2 w-full border-y border-slate-800 py-1">
-              <p className="text-[12pt] font-semibold uppercase tracking-widest">
+              <p className="text-[18pt] font-semibold uppercase tracking-widest">
                 Office of the Registrar
               </p>
             </div>
@@ -495,7 +495,7 @@ function certificate(doc: PrintDoc, variant: PrintVariant) {
           </p>
           <p className="mt-3 text-[12pt] leading-relaxed">Given this {issuedFormal}, Parañaque City.</p>
 
-          <div className="mt-auto pt-12">
+          <div className="mt-12">
             <p className="text-[12pt] font-bold">CERTIFIED BY:</p>
 
             <div className="mt-10 flex items-end justify-end">
@@ -506,8 +506,10 @@ function certificate(doc: PrintDoc, variant: PrintVariant) {
                 </div>
               </div>
             </div>
+          </div>
 
-            <p className="mt-12 text-center text-[12pt] italic text-slate-600">
+          <div className="mt-auto pt-12">
+            <p className="text-center text-[12pt] italic text-slate-600">
               Not valid without the school dry seal.
             </p>
             <p className="mt-1 text-center text-[9pt] font-semibold uppercase tracking-wide text-slate-700">
