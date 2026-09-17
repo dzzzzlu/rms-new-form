@@ -17,14 +17,29 @@ export default function SampleTemplates({ docName, docDescription }: SampleTempl
       case "Good Moral Certificate":
         return (
           <div className="space-y-1 text-center">
-            <p className="text-sm italic text-slate-500">To Whom It May Concern:</p>
-            <p className="text-sm text-slate-700">
-              This is to certify that <span className="font-semibold">[Student Name]</span> of Regis
-              Marie College has maintained good moral character throughout their stay at the institution.
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-700">
+              Office of the Registrar
             </p>
-            <p className="text-sm text-slate-700">
-              No derogatory or disciplinary record has been found against the said student.
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-700">
+              Certificate of Good Moral Character
             </p>
+            <p className="mt-2 text-xs font-semibold text-slate-700">TO WHOM IT MAY CONCERN;</p>
+            <p className="mt-2 text-xs leading-relaxed text-slate-700">
+              This is to certify that <span className="font-semibold">[Student Name]</span> was a
+              bona fide <span className="font-semibold">[Course]</span> (CTP) student of this
+              institution. She has demonstrated good moral character throughout her stay in the
+              institution and has not been subjected to any disciplinary action for violation of
+              the rules and regulations of the College.
+            </p>
+            <p className="text-xs leading-relaxed text-slate-700">
+              This certification is being issued upon her request for whatever legal purpose it may
+              serve.
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-slate-700">
+              Given this [MM/DD/YYYY], Parañaque City.
+            </p>
+            <p className="mt-3 text-xs font-semibold text-slate-700">CERTIFIED BY:</p>
+            <p className="text-xs italic text-slate-600">Not valid without the school dry seal.</p>
           </div>
         );
       case "Certificate of Enrollment":

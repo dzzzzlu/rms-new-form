@@ -503,6 +503,9 @@ export default function ManageRequestsPage() {
           {groups.map((group) => {
             const first = group[0];
             const student = first.profiles;
+            const isGoodMoralGroup = group.every(
+              (r) => r.documents?.name === "Good Moral Certificate"
+            );
             return (
               <section key={first.batch_id ?? `single-${first.id}`} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-gradient-to-b from-white to-slate-50 px-4 py-3">
@@ -520,7 +523,7 @@ export default function ManageRequestsPage() {
                     </div>
                   </div>
                   <span className="flex-1" />
-                  <PrintDocument docs={group.map(toPrintDoc)} />
+                  <PrintDocument docs={group.map(toPrintDoc)} variant="registrar" directDocx={isGoodMoralGroup} />
                   <span className="sr-only">Print claim slips</span>
                 </div>
 
@@ -717,6 +720,7 @@ export default function ManageRequestsPage() {
           <PrintDocument
             docs={selectedDocs.map(toPrintDoc)}
             label={`Print slips (${selectedDocs.length})`}
+            variant="registrar"
             triggerClass="inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-white/25"
           />
         )}

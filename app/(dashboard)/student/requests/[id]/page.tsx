@@ -80,6 +80,7 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
                 classList: request.class_list,
                 issuedAt: request.updated_at,
               }]}
+              variant="student"
             />
           </div>
         </div>

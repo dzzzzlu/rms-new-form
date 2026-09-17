@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Printer } from "lucide-react";
+import { Download, Printer } from "lucide-react";
 
 export type PrintDoc = {
   docName: string;
@@ -17,6 +17,8 @@ export type PrintDoc = {
   contactNumber?: string | null;
   email?: string | null;
 };
+
+export type PrintVariant = "student" | "registrar";
 
 const REGISTRAR = "CHRISTIAN V. TABUGA";
 const TOR_REGISTRAR = "SHIENA MARIE H. VICTORIANO";
@@ -76,7 +78,67 @@ function Field({
   );
 }
 
-function certificate(doc: PrintDoc) {
+function genericCertificate(doc: PrintDoc, issuedDateLong: string) {
+  return (
+    <div className="print-area border-2 border-double border-slate-800 p-8 text-center text-slate-900">
+      <div className="mb-4 flex items-center justify-center gap-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/rmclogo.jpg" alt="Regis Marie College" className="h-16 w-16 rounded-md" />
+        <div>
+          <h1 className="text-2xl font-bold uppercase tracking-widest">Regis Marie College</h1>
+          <p className="text-xs text-slate-600">Document Request System · Official Document</p>
+        </div>
+      </div>
+
+      <div className="my-8 border-y border-slate-300 py-8">
+        <p className="mb-6 text-4xl font-serif font-bold uppercase tracking-wide">
+          {doc.docName}
+        </p>
+        <p className="mb-1 text-sm text-slate-500">This is to certify that</p>
+        <p className="my-1 text-2xl font-semibold uppercase text-brand-900">{doc.fullName}</p>
+        <div className="mx-auto mt-3 flex max-w-md items-center justify-center gap-4 text-sm">
+          {doc.studentNumber && (
+            <span>
+              Student No: <strong>{doc.studentNumber}</strong>
+            </span>
+          )}
+          {doc.course && (
+            <span>
+              Course: <strong>{doc.course}</strong>
+            </span>
+          )}
+        </div>
+      </div>
+
+      <p className="mb-10 text-sm text-slate-600">
+        This official document is issued by the Registrar&apos;s Office of Regis Marie College.
+      </p>
+
+      <div className="flex items-end justify-between text-sm">
+        <div className="text-left">
+          <p className="font-semibold">Issued on</p>
+          <p className="text-slate-600">{issuedDateLong}</p>
+        </div>
+        <div className="text-center">
+          <p className="font-semibold">Tracking Code</p>
+          <p className="font-mono text-slate-600">{doc.trackingCode}</p>
+        </div>
+        <div className="text-center">
+          <p className="font-semibold">Copies</p>
+          <p className="text-slate-600">{doc.copies}</p>
+        </div>
+        <div className="text-right">
+          <p className="font-semibold">Registrar</p>
+          <div className="mt-16 border-t border-slate-500 px-4 pt-1">
+            <p className="text-xs italic text-slate-500">Signature over Printed Name</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function certificate(doc: PrintDoc, variant: PrintVariant) {
   const issuedDate = doc.issuedAt ? new Date(doc.issuedAt) : new Date();
 
   const issuedDateLong = issuedDate.toLocaleDateString("en-US", {
@@ -392,64 +454,67 @@ function certificate(doc: PrintDoc) {
         </div>
       );
 
-    default:
+    case "Good Moral Certificate":
+      if (variant === "student") return genericCertificate(doc, issuedDateLong);
       return (
-        <div className="print-area border-2 border-double border-slate-800 p-8 text-center text-slate-900">
-          <div className="mb-4 flex items-center justify-center gap-3">
+        <div className="print-area border-2 border-double border-slate-800 p-6 text-slate-900">
+          <div className="text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/rmclogo.jpg" alt="Regis Marie College" className="h-16 w-16 rounded-md" />
-            <div>
-              <h1 className="text-2xl font-bold uppercase tracking-widest">Regis Marie College</h1>
-              <p className="text-xs text-slate-600">Document Request System · Official Document</p>
-            </div>
-          </div>
-
-          <div className="my-8 border-y border-slate-300 py-8">
-            <p className="mb-6 text-4xl font-serif font-bold uppercase tracking-wide">
-              {doc.docName}
+            <img src="/rmclogo.jpg" alt="Regis Marie College" className="mx-auto h-14 w-14 rounded-md" />
+            <h1 className="text-2xl font-bold uppercase tracking-wide">Regis Marie College</h1>
+            <p className="text-[10px]">
+              #7072 Dollar Lane St., Villanueva Village, Brgy. San Dionisio, Sucat,
             </p>
-            <p className="mb-1 text-sm text-slate-500">This is to certify that</p>
-            <p className="my-1 text-2xl font-semibold uppercase text-brand-900">{doc.fullName}</p>
-            <div className="mx-auto mt-3 flex max-w-md items-center justify-center gap-4 text-sm">
-              {doc.studentNumber && (
-                <span>
-                  Student No: <strong>{doc.studentNumber}</strong>
-                </span>
-              )}
-              {doc.course && (
-                <span>
-                  Course: <strong>{doc.course}</strong>
-                </span>
-              )}
+            <p className="text-[10px]">Parañaque City, Metro Manila 1700</p>
+            <p className="text-[10px]">
+              Contact No.: (02) 8671-01-99 • admin@regismarie-college.com •
+              www.regismariecollege.com
+            </p>
+            <div className="mx-auto mt-2 w-full border-y border-slate-800 py-1">
+              <p className="text-xs font-semibold uppercase tracking-widest">Office of the Registrar</p>
             </div>
+            <p className="mt-3 text-sm font-bold uppercase tracking-widest">
+              Certificate of Good Moral Character
+            </p>
           </div>
 
-          <p className="mb-10 text-sm text-slate-600">
-            This official document is issued by the Registrar&apos;s Office of Regis Marie College.
-          </p>
+          <p className="mt-5 text-xs font-bold">TO WHOM IT MAY CONCERN;</p>
 
-          <div className="flex items-end justify-between text-sm">
-            <div className="text-left">
-              <p className="font-semibold">Issued on</p>
-              <p className="text-slate-600">{issuedDateLong}</p>
-            </div>
+          <p className="mt-3 text-xs leading-relaxed">
+            This is to certify that <b>{doc.fullName}</b> was a bona fide{" "}
+            <b>{doc.course || "_________________"}</b> (CTP) student of this institution. She has
+            demonstrated good moral character throughout her stay in the institution and has not
+            been subjected to any disciplinary action for violation of the rules and regulations
+            of the College.
+          </p>
+          <p className="mt-3 text-xs leading-relaxed">
+            This certification is being issued upon her request for whatever legal purpose it may
+            serve.
+          </p>
+          <p className="mt-3 text-xs leading-relaxed">Given this {issuedFormal}, Parañaque City.</p>
+
+          <p className="mt-12 text-xs font-bold">CERTIFIED BY:</p>
+
+          <div className="mt-10 flex items-end justify-end">
             <div className="text-center">
-              <p className="font-semibold">Tracking Code</p>
-              <p className="font-mono text-slate-600">{doc.trackingCode}</p>
-            </div>
-            <div className="text-center">
-              <p className="font-semibold">Copies</p>
-              <p className="text-slate-600">{doc.copies}</p>
-            </div>
-            <div className="text-right">
-              <p className="font-semibold">Registrar</p>
-              <div className="mt-16 border-t border-slate-500 px-4 pt-1">
-                <p className="text-xs italic text-slate-500">Signature over Printed Name</p>
+              <div className="border-t border-slate-500 px-6 pt-1">
+                <p className="text-sm font-semibold">{REGISTRAR}</p>
+                <p className="text-xs uppercase">College Registrar</p>
               </div>
             </div>
           </div>
+
+          <p className="mt-10 text-center text-[11px] italic text-slate-600">
+            Not valid without the school dry seal.
+          </p>
+          <p className="mt-1 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-700">
+            Choose Excellence! Choose RMC!
+          </p>
         </div>
       );
+
+    default:
+      return genericCertificate(doc, issuedDateLong);
   }
 }
 
@@ -457,18 +522,50 @@ export default function PrintDocument({
   docs,
   label,
   triggerClass,
+  variant = "registrar",
+  directDocx = false,
 }: {
   docs: PrintDoc[];
   label?: string;
   triggerClass?: string;
+  variant?: PrintVariant;
+  directDocx?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const count = docs.length;
+  const allDocxSupported = docs.every((d) => d.docName === "Good Moral Certificate");
+
+  async function handleDownload() {
+    const { buildDocxBlob } = await import("../lib/docxGen");
+    try {
+      for (const doc of docs) {
+        const blob = await buildDocxBlob({
+          docName: doc.docName,
+          fullName: doc.fullName,
+          course: doc.course,
+          issuedAt: doc.issuedAt,
+          copies: doc.copies,
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${doc.docName} - ${doc.fullName} - ${doc.trackingCode}.docx`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Couldn't generate the Word file for this document.");
+    }
+  }
 
   if (!open) {
     return (
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (directDocx) void handleDownload();
+          else setOpen(true);
+        }}
         className={triggerClass ?? "btn-outline flex items-center gap-2"}
       >
         <Printer className="h-4 w-4" />
@@ -487,7 +584,7 @@ export default function PrintDocument({
               i < docs.length - 1 ? "break-after-page" : ""
             }`}
           >
-            {certificate(doc)}
+            {certificate(doc, variant)}
           </div>
         ))}
       </div>
@@ -497,6 +594,12 @@ export default function PrintDocument({
           <Printer className="h-4 w-4" />
           Print
         </button>
+        {allDocxSupported && variant !== "student" && (
+          <button onClick={handleDownload} className="btn-outline flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Download .docx
+          </button>
+        )}
         <button onClick={() => setOpen(false)} className="btn-outline">
           Close Preview
         </button>
