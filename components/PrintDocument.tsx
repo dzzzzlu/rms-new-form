@@ -95,7 +95,7 @@ function genericCertificate(doc: PrintDoc, issuedDateLong: string) {
           {doc.docName}
         </p>
         <p className="mb-1 text-sm text-slate-500">This is to certify that</p>
-        <p className="my-1 text-2xl font-semibold uppercase text-brand-900">{doc.fullName}</p>
+        <p className="my-1 text-2xl font-semibold text-brand-900">{doc.fullName}</p>
         <div className="mx-auto mt-3 flex max-w-md items-center justify-center gap-4 text-sm">
           {doc.studentNumber && (
             <span>

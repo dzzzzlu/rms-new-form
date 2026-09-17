@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RequestWithRelations } from "@/lib/types";
 import { sendNotification } from "@/lib/notify";
+import { titleCaseName } from "@/lib/validation";
 import { Search, Inbox, Clock, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import PrintDocument, { type PrintDoc } from "@/components/PrintDocument";
@@ -113,7 +114,7 @@ function toPrintDoc(r: RequestWithRelations): PrintDoc {
   return {
     docName: r.documents?.name ?? "Document",
     trackingCode: r.tracking_code,
-    fullName: r.profiles?.full_name ?? "Student",
+    fullName: titleCaseName(r.profiles?.full_name ?? "Student"),
     studentNumber: r.profiles?.student_number ?? null,
     course: r.profiles?.course ?? null,
     copies: r.copies,
@@ -513,7 +514,7 @@ export default function ManageRequestsPage() {
                     {initials(student?.full_name ?? "U")}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold text-slate-900">{student?.full_name ?? "Student"}</div>
+                    <div className="text-sm font-semibold text-slate-900">{titleCaseName(student?.full_name ?? "Student")}</div>
                     <div className="flex flex-wrap gap-x-2.5 text-[12.5px] text-slate-500">
                       <span>{student?.student_number ?? "—"}</span>
                       <span className="font-mono">{first.batch_id ?? first.tracking_code}</span>

@@ -21,6 +21,13 @@ export function validateNamePart(name: string, label: string): string | null {
   return null;
 }
 
+export function titleCaseName(name: string): string {
+  return sanitize(name)
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .replace(/(^|[\s'-])([a-z])/g, (_m, sep: string, ch: string) => sep + ch.toUpperCase());
+}
+
 export function validateEmail(email: string): string | null {
   const s = sanitize(email);
   if (!s) return "Email is required.";

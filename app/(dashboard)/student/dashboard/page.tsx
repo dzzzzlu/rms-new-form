@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
+import { titleCaseName } from "@/lib/validation";
 import type { RecentRequest } from "@/lib/types";
 import Link from "next/link";
 import { FileText } from "lucide-react";
@@ -27,7 +28,7 @@ export default async function StudentDashboard() {
     <div className="space-y-6">
       <div className="card">
         <p className="text-sm text-slate-500">Welcome back,</p>
-        <h2 className="text-xl font-bold text-brand-900">{profile?.full_name}</h2>
+        <h2 className="text-xl font-bold text-brand-900">{titleCaseName(profile.full_name)}</h2>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

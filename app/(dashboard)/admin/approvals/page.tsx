@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { UserCheck, UserX } from "lucide-react";
 import emailjs from "@emailjs/browser";
 import { accountApproved } from "@/lib/email-templates";
+import { titleCaseName } from "@/lib/validation";
 
 const SERVICE_ID = "service_nhk5a1v";
 const TEMPLATE_ID = "template_sbsok4n";
@@ -134,7 +135,7 @@ export default function AdminApprovalsPage() {
             <div key={u.id} className="card space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="font-semibold text-brand-900">{u.full_name}</p>
+                  <p className="font-semibold text-brand-900">{titleCaseName(u.full_name)}</p>
                   <p className="text-xs text-slate-500">{u.email}</p>
                 </div>
                 <span className="badge bg-amber-50 text-amber-700">Pending</span>

@@ -22,6 +22,7 @@ import {
   LogOut,
 } from "lucide-react";
 import Image from "next/image";
+import { titleCaseName } from "@/lib/validation";
 
 type Role = "student" | "registrar" | "admin" | "guidance";
 
@@ -175,7 +176,7 @@ export default function Sidebar({
         </nav>
 
         <div className="border-t border-white/10 px-4 py-4">
-          <p className="truncate text-sm font-semibold text-white">{fullName}</p>
+          <p className="truncate text-sm font-semibold text-white">{titleCaseName(fullName)}</p>
           <p className="mb-3 text-xs text-brand-200">{ROLE_LABEL[role]}</p>
           <button
             onClick={handleLogout}

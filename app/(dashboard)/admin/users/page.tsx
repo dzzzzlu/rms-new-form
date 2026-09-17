@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { titleCaseName } from "@/lib/validation";
 import { toast } from "sonner";
 
 type UserProfile = {
@@ -163,7 +164,7 @@ export default function AdminUsersPage() {
             <tbody>
               {paginated.map((u) => (
                 <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-3 py-2.5 font-medium text-slate-800">{u.full_name}</td>
+                  <td className="px-3 py-2.5 font-medium text-slate-800">{titleCaseName(u.full_name)}</td>
                   <td className="px-3 py-2.5 text-slate-600">{u.email}</td>
                   <td className="px-3 py-2.5 capitalize">{u.role}</td>
                   <td className="px-3 py-2.5">

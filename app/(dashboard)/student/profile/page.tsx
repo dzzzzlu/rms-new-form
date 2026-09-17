@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile, Request } from "@/lib/types";
-import { validateContactNumber } from "@/lib/validation";
+import { validateContactNumber, titleCaseName } from "@/lib/validation";
 
 const STATUS_COLOR: Record<string, string> = {
   Pending: "bg-slate-100 text-slate-700",
@@ -41,9 +41,9 @@ type HistoryItem = {
 function displayName(p: Profile): string {
   const parts = [p.first_name, p.middle_name, p.last_name]
     .filter(Boolean)
-    .map((s) => String(s).trim())
+    .map((s) => titleCaseName(String(s)))
     .filter(Boolean);
-  return parts.length ? parts.join(" ") : p.full_name;
+  return parts.length ? parts.join(" ") : titleCaseName(p.full_name);
 }
 
 export default function ProfilePage() {

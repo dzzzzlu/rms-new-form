@@ -10,6 +10,7 @@ import {
   validatePassword,
   validateStudentNumber,
   validateContactNumber,
+  titleCaseName,
 } from "@/lib/validation";
 
 const COURSES = [
@@ -113,9 +114,10 @@ export default function RegisterPage() {
 
     setLoading(true);
 
-    const fullName = [form.first_name.trim(), form.middle_name.trim(), form.last_name.trim()]
-      .filter(Boolean)
-      .join(" ");
+    const firstName = titleCaseName(form.first_name);
+    const middleName = titleCaseName(form.middle_name);
+    const lastName = titleCaseName(form.last_name);
+    const fullName = [firstName, middleName, lastName].filter(Boolean).join(" ");
     const isAlumni = form.enrollment_status === "Graduated" || form.enrollment_status === "Alumni";
 
     let sendErrorMsg = "";
@@ -143,9 +145,9 @@ export default function RegisterPage() {
         email: form.email,
         password: form.password,
         full_name: fullName,
-        last_name: form.last_name.trim(),
-        first_name: form.first_name.trim(),
-        middle_name: form.middle_name.trim(),
+        last_name: lastName,
+        first_name: firstName,
+        middle_name: middleName,
         student_number: form.student_number.trim(),
         course: form.course,
         year_level: form.year_level,

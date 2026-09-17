@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendEmailJS } from "@/lib/emailjs";
 import { accountWaitingApproval } from "@/lib/email-templates";
+import { titleCaseName } from "@/lib/validation";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -65,11 +66,17 @@ export async function POST(req: Request) {
     const isAlumni = enrollment_status
       ? enrollment_status === "Graduated" || enrollment_status === "Alumni"
       : Boolean(is_alumni);
+    const normalizedFirst = titleCaseName(String(first_name ?? ""));
+    const normalizedMiddle = titleCaseName(String(middle_name ?? ""));
+    const normalizedLast = titleCaseName(String(last_name ?? ""));
+    const normalizedFull =
+      titleCaseName(String(full_name ?? "")) ||
+      [normalizedFirst, normalizedMiddle, normalizedLast].filter(Boolean).join(" ");
     const meta = {
-      full_name,
-      last_name,
-      first_name,
-      middle_name,
+      full_name: normalizedFull,
+      last_name: normalizedLast,
+      first_name: normalizedFirst,
+      middle_name: normalizedMiddle,
       student_number,
       course,
       year_level,
