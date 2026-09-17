@@ -461,54 +461,56 @@ function certificate(doc: PrintDoc, variant: PrintVariant) {
           <div className="text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/rmclogo.jpg" alt="Regis Marie College" className="mx-auto h-14 w-14 rounded-md" />
-            <h1 className="text-2xl font-bold uppercase tracking-wide">Regis Marie College</h1>
-            <p className="text-[10px]">
+            <h1 className="text-[18pt] font-bold uppercase tracking-wide">Regis Marie College</h1>
+            <p className="text-[9pt]">
               #7072 Dollar Lane St., Villanueva Village, Brgy. San Dionisio, Sucat,
             </p>
-            <p className="text-[10px]">Parañaque City, Metro Manila 1700</p>
-            <p className="text-[10px]">
+            <p className="text-[9pt]">Parañaque City, Metro Manila 1700</p>
+            <p className="text-[9pt]">
               Contact No.: (02) 8671-01-99 • admin@regismarie-college.com •
               www.regismariecollege.com
             </p>
             <div className="mx-auto mt-2 w-full border-y border-slate-800 py-1">
-              <p className="text-xs font-semibold uppercase tracking-widest">Office of the Registrar</p>
+              <p className="text-[12pt] font-semibold uppercase tracking-widest">
+                Office of the Registrar
+              </p>
             </div>
-            <p className="mt-3 text-sm font-bold uppercase tracking-widest">
+            <p className="mt-3 text-[14pt] font-bold uppercase tracking-widest">
               Certificate of Good Moral Character
             </p>
           </div>
 
-          <p className="mt-6 text-xs font-bold">TO WHOM IT MAY CONCERN;</p>
+          <p className="mt-6 text-[12pt] font-bold">TO WHOM IT MAY CONCERN;</p>
 
-          <p className="mt-3 text-xs leading-relaxed">
+          <p className="mt-3 text-[12pt] leading-relaxed">
             This is to certify that <b>{doc.fullName}</b> was a bona fide{" "}
             <b>{doc.course || "_________________"}</b> (CTP) student of this institution. She has
             demonstrated good moral character throughout her stay in the institution and has not
             been subjected to any disciplinary action for violation of the rules and regulations
             of the College.
           </p>
-          <p className="mt-3 text-xs leading-relaxed">
+          <p className="mt-3 text-[12pt] leading-relaxed">
             This certification is being issued upon her request for whatever legal purpose it may
             serve.
           </p>
-          <p className="mt-3 text-xs leading-relaxed">Given this {issuedFormal}, Parañaque City.</p>
+          <p className="mt-3 text-[12pt] leading-relaxed">Given this {issuedFormal}, Parañaque City.</p>
 
           <div className="mt-auto pt-12">
-            <p className="text-xs font-bold">CERTIFIED BY:</p>
+            <p className="text-[12pt] font-bold">CERTIFIED BY:</p>
 
             <div className="mt-10 flex items-end justify-end">
               <div className="text-center">
                 <div className="border-t border-slate-500 px-6 pt-1">
-                  <p className="text-sm font-semibold">{REGISTRAR}</p>
-                  <p className="text-xs uppercase">College Registrar</p>
+                  <p className="text-[12pt] font-semibold">{REGISTRAR}</p>
+                  <p className="text-[12pt] uppercase">College Registrar</p>
                 </div>
               </div>
             </div>
 
-            <p className="mt-12 text-center text-[11px] italic text-slate-600">
+            <p className="mt-12 text-center text-[12pt] italic text-slate-600">
               Not valid without the school dry seal.
             </p>
-            <p className="mt-1 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-700">
+            <p className="mt-1 text-center text-[9pt] font-semibold uppercase tracking-wide text-slate-700">
               Choose Excellence! Choose RMC!
             </p>
           </div>
