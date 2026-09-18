@@ -51,6 +51,8 @@ function VerifyEmailForm() {
               enrollment_status: p.enrollment_status ?? "",
               contact_number: p.contact_number ?? "",
               is_alumni: Boolean(p.is_alumni),
+              verification_doc_path: p.verification_doc_path ?? null,
+              verification_doc_name: p.verification_doc_name ?? null,
             });
           }
         }

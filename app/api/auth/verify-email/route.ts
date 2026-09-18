@@ -37,6 +37,8 @@ export async function POST(req: Request) {
       enrollment_status,
       contact_number,
       is_alumni,
+      verification_doc_path,
+      verification_doc_name,
     } = await req.json();
     if (!email || !code) return NextResponse.json({ error: "Email and code are required." }, { status: 400 });
 
@@ -83,6 +85,8 @@ export async function POST(req: Request) {
       enrollment_status,
       contact_number,
       is_alumni: Boolean(is_alumni),
+      verification_doc_path: verification_doc_path ?? null,
+      verification_doc_name: verification_doc_name ?? null,
     };
 
     if (password) {
@@ -148,6 +152,8 @@ export async function POST(req: Request) {
           year_level: userMeta.year_level ?? null,
           enrollment_status: userMeta.enrollment_status ?? "Currently Enrolled",
           is_alumni: Boolean(userMeta.is_alumni),
+          verification_doc_path: userMeta.verification_doc_path ?? null,
+          verification_doc_name: userMeta.verification_doc_name ?? null,
           consent_accepted_at: new Date().toISOString(),
           is_active: false,
           email_verified: false,
@@ -178,6 +184,8 @@ export async function POST(req: Request) {
         enrollment_status: meta.enrollment_status || "Currently Enrolled",
         contact_number: meta.contact_number || null,
         is_alumni: Boolean(isAlumni),
+        verification_doc_path: meta.verification_doc_path ?? null,
+        verification_doc_name: meta.verification_doc_name ?? null,
         consent_accepted_at: new Date().toISOString(),
       })
       .eq("id", authUserId);

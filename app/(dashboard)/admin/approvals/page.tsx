@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { UserCheck, UserX } from "lucide-react";
+import { UserCheck, UserX, FileText, ExternalLink, Loader2 } from "lucide-react";
 import emailjs from "@emailjs/browser";
 import { accountApproved } from "@/lib/email-templates";
 import { titleCaseName } from "@/lib/validation";
@@ -25,6 +25,8 @@ type PendingUser = {
   year_level: string | null;
   enrollment_status: string | null;
   created_at: string;
+  verification_doc_path: string | null;
+  verification_doc_name: string | null;
 };
 
 export default function AdminApprovalsPage() {
@@ -32,12 +34,13 @@ export default function AdminApprovalsPage() {
   const [users, setUsers] = useState<PendingUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [openingId, setOpeningId] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
     const { data } = await supabase
       .from("profiles")
-      .select("id, full_name, email, role, student_number, course, contact_number, is_alumni, school_year, year_level, enrollment_status, created_at")
+      .select("id, full_name, email, role, student_number, course, contact_number, is_alumni, school_year, year_level, enrollment_status, created_at, verification_doc_path, verification_doc_name")
       .eq("is_active", false)
       .order("created_at", { ascending: true });
     setUsers((data as PendingUser[]) ?? []);
@@ -47,6 +50,20 @@ export default function AdminApprovalsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  async function viewDoc(u: PendingUser) {
+    if (!u.verification_doc_path) return;
+    setOpeningId(u.id);
+    const { data, error } = await supabase.storage
+      .from("verification-docs")
+      .createSignedUrl(u.verification_doc_path, 3600);
+    setOpeningId(null);
+    if (error || !data?.signedUrl) {
+      toast.error("Could not open the document.");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  }
 
   async function approve(u: PendingUser) {
     setProcessingId(u.id);
@@ -165,6 +182,30 @@ export default function AdminApprovalsPage() {
                   <p className="text-slate-500">Registered</p>
                   <p className="font-medium">{new Date(u.created_at).toLocaleDateString()}</p>
                 </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+                <FileText className="h-4 w-4 shrink-0 text-brand-600" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-slate-500">Verification document</p>
+                  <p className="truncate text-sm font-medium text-slate-700">
+                    {u.verification_doc_name ?? "No document uploaded"}
+                  </p>
+                </div>
+                {u.verification_doc_path && (
+                  <button
+                    type="button"
+                    onClick={() => viewDoc(u)}
+                    disabled={openingId === u.id}
+                    className="btn-outline flex flex-none items-center gap-1 text-xs"
+                  >
+                    {openingId === u.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    )}
+                    View
+                  </button>
+                )}
               </div>
               <div className="flex gap-2">
                 <button

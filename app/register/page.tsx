@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, FileText, Loader2, Upload, X } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import {
   validateNamePart,
   validateEmail,
@@ -12,6 +13,10 @@ import {
   validateContactNumber,
   titleCaseName,
 } from "@/lib/validation";
+
+const DOC_ACCEPT = "image/jpeg,image/png,image/webp,application/pdf";
+const DOC_MAX_BYTES = 5 * 1024 * 1024;
+const DOC_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 
 const COURSES = [
   "BS Computer Science",
@@ -50,9 +55,51 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [doc, setDoc] = useState<{ path: string; name: string } | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [docError, setDocError] = useState<string | null>(null);
 
   function update(key: string, value: string | boolean) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setDocError(null);
+
+    if (!DOC_ALLOWED_TYPES.includes(file.type)) {
+      setDocError("Please upload a JPG, PNG, WEBP, or PDF file.");
+      return;
+    }
+    if (file.size > DOC_MAX_BYTES) {
+      setDocError("File is too large. Maximum size is 5 MB.");
+      return;
+    }
+
+    setUploading(true);
+    const supabase = createClient();
+    const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+    const prefix = (form.last_name || "document").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const path = `${prefix}-${crypto.randomUUID()}.${ext}`;
+    const { error: uploadErr } = await supabase.storage
+      .from("verification-docs")
+      .upload(path, file, { contentType: file.type, upsert: false });
+
+    if (uploadErr) {
+      setDocError("Upload failed. Please try again.");
+      setUploading(false);
+      return;
+    }
+
+    setDoc({ path, name: file.name });
+    setUploading(false);
+  }
+
+  function clearDoc() {
+    setDoc(null);
+    setDocError(null);
   }
 
   function validateStep1(): string | null {
@@ -82,6 +129,7 @@ export default function RegisterPage() {
     }
     const phoneErr = validateContactNumber(form.contact_number);
     if (phoneErr) return phoneErr;
+    if (!doc) return "Please upload your School ID, Registration Form, or COR.";
     if (!form.consent) return "Please accept the Data Privacy notice to continue.";
     return null;
   }
@@ -154,6 +202,8 @@ export default function RegisterPage() {
         enrollment_status: form.enrollment_status,
         contact_number: form.contact_number.trim(),
         is_alumni: isAlumni,
+        verification_doc_path: doc?.path ?? null,
+        verification_doc_name: doc?.name ?? null,
       })
     );
 
@@ -382,6 +432,60 @@ export default function RegisterPage() {
                 <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
                   Used for pickup reminders when your documents are ready.
                 </p>
+              </div>
+
+              <div>
+                <label className="label">Verification Document</label>
+                <p className="mb-2 text-xs leading-relaxed text-slate-500">
+                  Upload your <strong>School ID</strong>, <strong>Registration Form</strong>, or{" "}
+                  <strong>COR</strong> so the registrar can verify your identity. Accepts JPG, PNG,
+                  WEBP, or PDF — max 5 MB.
+                </p>
+
+                {doc ? (
+                  <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+                    <FileText className="h-5 w-5 shrink-0 text-emerald-600" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-slate-700">{doc.name}</p>
+                      <p className="text-xs text-emerald-600">Uploaded successfully</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearDoc}
+                      aria-label="Remove uploaded document"
+                      className="shrink-0 text-slate-400 transition-colors hover:text-red-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    className={`flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-4 text-sm transition-colors ${
+                      uploading
+                        ? "cursor-wait border-brand-300 bg-brand-50 text-brand-600"
+                        : "border-slate-300 text-slate-500 hover:border-brand-400 hover:bg-brand-50"
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      accept={DOC_ACCEPT}
+                      className="hidden"
+                      onChange={onFileChange}
+                      disabled={uploading}
+                    />
+                    {uploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" /> Uploading…
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4" /> Choose file
+                      </>
+                    )}
+                  </label>
+                )}
+
+                {docError && <p className="mt-1.5 text-xs text-red-600">{docError}</p>}
               </div>
 
               <label className="flex items-start gap-2.5 pt-1">
