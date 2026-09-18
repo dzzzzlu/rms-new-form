@@ -89,6 +89,26 @@ export async function POST(req: Request) {
       verification_doc_name: verification_doc_name ?? null,
     };
 
+    // profiles.student_number has a UNIQUE constraint, so if the number is
+    // already registered to another account the signup trigger insert fails
+    // and GoTrue reports it as the cryptic "Database error creating new user".
+    if (student_number) {
+      const { data: sameSn } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("student_number", student_number)
+        .maybeSingle();
+      if (
+        sameSn &&
+        sameSn.email?.toLowerCase() !== String(email).toLowerCase()
+      ) {
+        return NextResponse.json(
+          { error: "This student number is already registered to another account." },
+          { status: 400 }
+        );
+      }
+    }
+
     if (password) {
       const { data: created, error: createErr } = await supabase.auth.admin.createUser({
         email,
@@ -106,6 +126,21 @@ export async function POST(req: Request) {
           }
           authUserId = existing.id;
         } else {
+          // Fallback: if GoTrue still surfaces the generic trigger-failure
+          // error, re-check the student number so the user gets a clear message.
+          if (student_number && /database error creating new user/i.test(createErr.message)) {
+            const { data: sameSn } = await supabase
+              .from("profiles")
+              .select("email")
+              .eq("student_number", student_number)
+              .maybeSingle();
+            if (sameSn) {
+              return NextResponse.json(
+                { error: "This student number is already registered to another account." },
+                { status: 400 }
+              );
+            }
+          }
           return NextResponse.json({ error: createErr.message }, { status: 500 });
         }
       } else {

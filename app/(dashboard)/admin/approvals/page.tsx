@@ -4,13 +4,9 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { UserCheck, UserX, FileText, ExternalLink, Loader2 } from "lucide-react";
-import emailjs from "@emailjs/browser";
+import { sendEmailJS } from "@/lib/emailjs";
 import { accountApproved } from "@/lib/email-templates";
 import { titleCaseName } from "@/lib/validation";
-
-const SERVICE_ID = "service_nhk5a1v";
-const TEMPLATE_ID = "template_sbsok4n";
-const PUBLIC_KEY = "UYVOvfUlIE-yUdJR1";
 
 type PendingUser = {
   id: string;
@@ -85,16 +81,11 @@ export default function AdminApprovalsPage() {
     });
 
     try {
-      await emailjs.send(
-        SERVICE_ID,
-        TEMPLATE_ID,
-        {
-          to_email: u.email,
-          subject: "Account Approved — Regis Marie College",
-          html_content: accountApproved(u.full_name),
-        },
-        { publicKey: PUBLIC_KEY }
-      );
+      await sendEmailJS({
+        to: u.email,
+        subject: "Account Approved — Regis Marie College",
+        html: accountApproved(u.full_name),
+      });
     } catch (err) {
       console.error("Approval email error:", err);
     }
