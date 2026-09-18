@@ -20,7 +20,7 @@ export default function NewRequestPage() {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [purpose, setPurpose] = useState("");
-  const [copies, setCopies] = useState(1);
+  const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [paymentMethod, setPaymentMethod] = useState<"gcash" | "walk_in">("gcash");
   const [gcashRef, setGcashRef] = useState("");
   const [proofFile, setProofFile] = useState<File | null>(null);
@@ -39,7 +39,12 @@ export default function NewRequestPage() {
   const selectedDocs = docs.filter((d) => selectedIds.includes(d.id));
   const hasCertificateEnrollment = selectedDocs.some((d) => d.name === "Certificate of Enrollment");
   const hasGoodMoral = selectedDocs.some((d) => d.name === "Good Moral Certificate");
-  const amount = selectedDocs.reduce((sum, d) => sum + d.fee * copies, 0);
+  const quantityOf = (d: Doc) => quantities[d.id] ?? 1;
+  const amount = selectedDocs.reduce((sum, d) => sum + d.fee * quantityOf(d), 0);
+
+  function setQty(id: number, value: number) {
+    setQuantities((prev) => ({ ...prev, [id]: Math.max(1, Math.min(99, value)) }));
+  }
 
   function toggleDoc(id: number) {
     setSelectedIds((prev) =>
@@ -55,8 +60,10 @@ export default function NewRequestPage() {
 
     const purposeErr = validatePurpose(purpose);
     if (purposeErr) return setError(purposeErr);
-    const copiesErr = validateCopies(copies);
-    if (copiesErr) return setError(copiesErr);
+    for (const d of selectedDocs) {
+      const copyErr = validateCopies(quantityOf(d));
+      if (copyErr) return setError(`${d.name}: ${copyErr}`);
+    }
 
     if (hasCertificateEnrollment && !classList.trim()) {
       return setError("Please enter your class list for the Certificate of Enrollment.");
@@ -97,9 +104,9 @@ export default function NewRequestPage() {
           user_id: user.id,
           document_id: doc.id,
           purpose: sanitize(purpose),
-          copies,
           status: "Pending",
           class_list: doc.name === "Certificate of Enrollment" ? sanitize(classList) : null,
+          copies: quantityOf(doc),
           guidance_status: doc.name === "Good Moral Certificate" ? "Pending" : null,
         })
         .select("id")
@@ -123,7 +130,7 @@ export default function NewRequestPage() {
           gcash_reference: gcashRef,
           reference_number: refNum,
           proof_image: proofPath,
-          amount: doc.fee * copies,
+          amount: doc.fee * quantityOf(doc),
           status: "Pending",
           payment_method: "gcash",
         });
@@ -140,7 +147,7 @@ export default function NewRequestPage() {
           gcash_reference: "",
           reference_number: refNum,
           proof_image: "",
-          amount: doc.fee * copies,
+          amount: doc.fee * quantityOf(doc),
           status: "Verified",
           payment_method: "walk_in",
           verified_at: new Date().toISOString(),
@@ -203,33 +210,64 @@ export default function NewRequestPage() {
             {docs.map((d) => {
               const checked = selectedIds.includes(d.id);
               return (
-                <label
+                <div
                   key={d.id}
-                  className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg border p-3 transition ${
+                  className={`rounded-lg border p-3 transition ${
                     checked
                       ? "border-brand-600 bg-brand-50"
                       : "border-slate-200 bg-white hover:border-brand-300"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleDoc(d.id)}
-                      className="h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-400"
-                    />
-                    <div>
-                      <p className="text-sm font-medium text-slate-800">{d.name}</p>
-                      {d.description && (
-                        <p className="text-xs text-slate-500">{d.description}</p>
-                      )}
+                  <label className="flex cursor-pointer items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleDoc(d.id)}
+                        className="h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-400"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">{d.name}</p>
+                        {d.description && (
+                          <p className="text-xs text-slate-500">{d.description}</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right text-xs text-slate-500">
-                    <p className="font-semibold text-slate-700">₱{d.fee.toFixed(2)}</p>
-                    <p>{d.processing_days} days</p>
-                  </div>
-                </label>
+                    <div className="text-right text-xs text-slate-500">
+                      <p className="font-semibold text-slate-700">₱{d.fee.toFixed(2)}</p>
+                      <p>{d.processing_days} days</p>
+                    </div>
+                  </label>
+                  {checked && (
+                    <div className="mt-2 flex items-center justify-end gap-2 border-t border-brand-100 pt-2 text-sm">
+                      <span className="text-xs font-medium text-brand-700">Copies:</span>
+                      <button
+                        type="button"
+                        onClick={() => setQty(d.id, quantityOf(d) - 1)}
+                        className="h-7 w-7 rounded-md border border-brand-200 bg-white text-brand-700 transition hover:bg-brand-100"
+                        aria-label="Decrease copies"
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        min={1}
+                        max={99}
+                        value={quantityOf(d)}
+                        onChange={(e) => setQty(d.id, Number(e.target.value) || 1)}
+                        className="h-7 w-14 rounded-md border border-slate-300 px-1 text-center text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setQty(d.id, quantityOf(d) + 1)}
+                        className="h-7 w-7 rounded-md border border-brand-200 bg-white text-brand-700 transition hover:bg-brand-100"
+                        aria-label="Increase copies"
+                      >
+                        +
+                      </button>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -238,17 +276,6 @@ export default function NewRequestPage() {
         <div>
           <label className="label">Purpose</label>
           <input className="input" value={purpose} onChange={(e) => setPurpose(e.target.value)} />
-        </div>
-
-        <div>
-          <label className="label">Number of Copies</label>
-          <input
-            type="number"
-            min={1}
-            className="input"
-            value={copies}
-            onChange={(e) => setCopies(Math.max(1, Number(e.target.value)))}
-          />
         </div>
 
         {hasCertificateEnrollment && (
@@ -282,7 +309,7 @@ export default function NewRequestPage() {
             <ul className="mt-1 list-inside list-disc text-xs">
               {selectedDocs.map((d) => (
                 <li key={d.id}>
-                  {d.name} — ₱{(d.fee * copies).toFixed(2)} × {copies} cop{copies > 1 ? "ies" : "y"}
+                  {d.name} — ₱{(d.fee * quantityOf(d)).toFixed(2)} × {quantityOf(d)} cop{quantityOf(d) > 1 ? "ies" : "y"}
                 </li>
               ))}
             </ul>
