@@ -297,7 +297,9 @@ export default function AnalyticsPage() {
               value={filterVal}
               onChange={(e) => setFilterVal(e.target.value)}
             >
-              <option value="">All {activeCategoryLabel.toLowerCase()}s</option>
+              <option value="">
+                All {activeCategoryLabel.toLowerCase() === "status" ? "statuses" : `${activeCategoryLabel.toLowerCase()}s`}
+              </option>
               {valueOptions.map((v) => (
                 <option key={v} value={v}>
                   {v}
