@@ -97,7 +97,7 @@ export default function ImportRecordsPage() {
       <div className="card space-y-3">
         <p className="text-sm font-medium text-slate-700">CSV columns expected:</p>
         <code className="block rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
-          student_email, document_name, status, copies, date
+          full_name, course, student_number, student_email, document_name, status, copies, date
         </code>
         <p className="text-xs text-slate-400">
           <code>document_name</code> must match a document type exactly (e.g. "Transcript of Records").{" "}

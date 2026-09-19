@@ -23,7 +23,7 @@ const COURSES = [
   "BS Computer Science",
   "BS Accountancy",
   "BS Business Administration",
-  "AB Education",
+  "BS Education",
 ];
 
 const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"];
