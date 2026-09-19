@@ -29,7 +29,6 @@ type HistoryRequest = {
     reference_number: string;
     amount: number;
     status: string;
-    payment_method: "gcash" | "walk_in";
     verified_at: string | null;
   }[];
 };
@@ -41,7 +40,7 @@ export default async function HistoryPage() {
 
   const { data: requests } = await supabase
     .from("requests")
-    .select("id, tracking_code, purpose, copies, status, pickup_at, created_at, documents(name, fee), payments(reference_number, amount, status, payment_method, verified_at)")
+    .select("id, tracking_code, purpose, copies, status, pickup_at, created_at, documents(name, fee), payments(reference_number, amount, status, verified_at)")
     .eq("user_id", profile.id)
     .order("created_at", { ascending: false });
 
@@ -100,16 +99,15 @@ export default async function HistoryPage() {
                           profile.last_name,
                           profile.full_name
                         ),
+                        studentNumber: profile.student_number,
                         course: profile.course,
                         yearLevel: profile.year_level,
                         schoolYear: profile.school_year,
                         documentName: r.documents?.name ?? "Document",
                         trackingCode: r.tracking_code,
-                        copies: r.copies,
                         amount: verifiedPayment.amount,
                         referenceNumber: verifiedPayment.reference_number,
                         paidAt: verifiedPayment.verified_at,
-                        paymentMethod: verifiedPayment.payment_method,
                       }}
                     />
                   )}
