@@ -11,7 +11,7 @@ type ReportRow = {
   created_at: string;
   copies: number;
   documents: { name: string; fee: number } | null;
-  profiles: { full_name: string } | null;
+  profiles: { full_name: string; course: string | null; student_number: string | null; email: string | null } | null;
 };
 
 export default function ReportsPage() {
@@ -23,7 +23,7 @@ export default function ReportsPage() {
     (async () => {
       const { data } = await supabase
         .from("requests")
-        .select("tracking_code, status, created_at, copies, documents(name, fee), profiles(full_name)")
+        .select("tracking_code, status, created_at, copies, documents(name, fee), profiles(full_name, course, student_number, email)")
         .order("created_at", { ascending: false });
       setRows((data as unknown as ReportRow[]) ?? []);
       setLoading(false);
@@ -32,12 +32,14 @@ export default function ReportsPage() {
 
   function downloadCsv() {
     const data = rows.map((r) => ({
-      "Tracking Code": r.tracking_code,
-      Requestor: r.profiles?.full_name ?? "",
-      Document: r.documents?.name ?? "",
-      Copies: r.copies,
-      Status: r.status,
-      Date: new Date(r.created_at).toLocaleDateString(),
+      full_name: r.profiles?.full_name ?? "",
+      course: r.profiles?.course ?? "",
+      student_number: r.profiles?.student_number ?? "",
+      student_email: r.profiles?.email ?? "",
+      document_name: r.documents?.name ?? "",
+      status: r.status,
+      copies: r.copies,
+      date: new Date(r.created_at).toLocaleDateString(),
     }));
     const csv = Papa.unparse(data);
     const blob = new Blob([csv], { type: "text/csv" });
