@@ -19,15 +19,20 @@ export default function VerifyPaymentsPage() {
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [decidingId, setDecidingId] = useState<number | null>(null);
+  const [tab, setTab] = useState<"Pending" | "History">("Pending");
 
   async function load() {
     setLoading(true);
-    const { data } = await supabase
+    let query = supabase
       .from("payments")
-      .select("id, gcash_reference, reference_number, proof_image, amount, status, payment_method, request_id, requests(tracking_code, user_id, profiles(full_name))")
-      .eq("status", "Pending")
-      .neq("payment_method", "walk_in")
+      .select("id, gcash_reference, reference_number, proof_image, amount, status, payment_method, rejection_reason, verified_at, request_id, requests(tracking_code, user_id, profiles(full_name))")
       .order("created_at", { ascending: false });
+    if (tab === "Pending") {
+      query = query.eq("status", "Pending").neq("payment_method", "walk_in");
+    } else {
+      query = query.in("status", ["Verified", "Rejected"]);
+    }
+    const { data } = await query;
     setPayments((data as unknown as PaymentRow[]) ?? []);
 
     const signedUrls = await Promise.all(
@@ -104,9 +109,24 @@ export default function VerifyPaymentsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="card">
-        <h2 className="text-xl font-bold text-brand-900">Verify Payments</h2>
-        <p className="text-sm text-slate-500">Review GCash proof or walk-in payments and approve or reject each.</p>
+      <div className="card space-y-3">
+        <div>
+          <h2 className="text-xl font-bold text-brand-900">Verify Payments</h2>
+          <p className="text-sm text-slate-500">Review GCash proof or walk-in payments and approve or reject each. View the payment history to see previously verified and rejected payments.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(["Pending", "History"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => { setTab(t); setPayments([]); setPreviews({}); setLoading(false); load(); }}
+              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+                tab === t ? "bg-brand-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              {t === "Pending" ? "Pending" : "History"}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
@@ -126,7 +146,9 @@ export default function VerifyPaymentsPage() {
       ) : payments.length === 0 ? (
         <div className="empty-state card">
           <CreditCard className="mb-3 h-10 w-10 text-slate-300" />
-          <p className="text-sm font-medium text-slate-500">No pending payments.</p>
+          <p className="text-sm font-medium text-slate-500">
+            {tab === "Pending" ? "No pending payments." : "No payment history yet."}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
