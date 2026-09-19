@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -82,42 +82,46 @@ type TipContent = {
   footer?: string;
 };
 
-type TipCtxValue = {
-  set: (c: TipContent) => void;
-  move: (x: number, y: number) => void;
-  hide: () => void;
-};
-
-const TipCtx = createContext<TipCtxValue>({ set: () => {}, move: () => {}, hide: () => {} });
-
-const useTip = () => useContext(TipCtx);
-
 let bindHost: { set: (c: TipContent, x: number, y: number) => void; hide: () => void } | null = null;
+let lastTip: TipContent | null = null;
+
+const placeTip = (e: { clientX: number; clientY: number }) => {
+  const x = Math.max(6, Math.min(window.innerWidth - TIP_W - 6, e.clientX + 14));
+  const y = Math.max(6, Math.min(window.innerHeight - TIP_H - 6, e.clientY + 14));
+  return { x, y };
+};
 
 function bind(content: TipContent) {
   return (e: { clientX: number; clientY: number }) => {
+    lastTip = content;
     if (!bindHost) return;
-    const x = Math.max(6, Math.min(window.innerWidth - TIP_W - 6, e.clientX + 14));
-    const y = Math.max(6, Math.min(window.innerHeight - TIP_H - 6, e.clientY + 14));
-    bindHost.set(content, x, y);
+    const p = placeTip(e);
+    bindHost.set(content, p.x, p.y);
   };
 }
 
-const unbind = () => {
+const tipAt = (e: { clientX: number; clientY: number }, content?: TipContent) => {
+  if (content) lastTip = content;
+  if (!bindHost || !lastTip) return;
+  const p = placeTip(e);
+  bindHost.set(lastTip, p.x, p.y);
+};
+
+const tipFollow = (e: { clientX: number; clientY: number }) => {
+  if (!bindHost || !lastTip) return;
+  const p = placeTip(e);
+  bindHost.set(lastTip, p.x, p.y);
+};
+
+const tipHide = () => {
+  lastTip = null;
   if (bindHost) bindHost.hide();
 };
 
+const unbind = tipHide;
+
 function TooltipHost(props: { children: ReactNode }) {
   const [tip, setTip] = useState<{ c: TipContent; x: number; y: number } | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
-  const value = useMemo<TipCtxValue>(
-    () => ({
-      set: (c) => setTip((prev) => ({ c, x: prev ? prev.x : 12, y: prev ? prev.y : 12 })),
-      move: (x, y) => setTip((prev) => (prev ? { ...prev, x, y } : prev)),
-      hide: () => setTip(null),
-    }),
-    []
-  );
   useEffect(() => {
     bindHost = {
       set: (c, x, y) => setTip({ c, x, y }),
@@ -128,8 +132,8 @@ function TooltipHost(props: { children: ReactNode }) {
     };
   }, []);
   return (
-    <div ref={ref}>
-      <TipCtx.Provider value={value}>{props.children}</TipCtx.Provider>
+    <div>
+      {props.children}
       {tip ? (
         <div
           className="pointer-events-none fixed z-[70] rounded-lg border border-[#23324a] bg-[#0d1b2b]/95 p-3 text-white shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur"
@@ -163,7 +167,6 @@ function ColumnChart({
   color: string;
   format?: (v: number) => string;
 }) {
-  const tip = useTip();
   const [hot, setHot] = useState<number | null>(null);
   const max = Math.max(...data.map((d) => d.value), 1);
   const total = data.reduce((s, d) => s + d.value, 0);
@@ -179,7 +182,7 @@ function ColumnChart({
             className="relative h-full"
             onMouseEnter={(e) => {
               setHot(i);
-              tip.set({
+              tipAt(e, {
                 heading: d.label,
                 rows: [
                   ["Value", format ? format(d.value) : String(d.value)],
@@ -187,29 +190,29 @@ function ColumnChart({
                 ],
                 footer: "Hover a column to inspect it.",
               });
-              tip.move(e.clientX + 14, e.clientY + 14);
             }}
-            onMouseMove={(e) => tip.move(e.clientX + 14, e.clientY + 14)}
+            onMouseMove={tipFollow}
             onMouseLeave={() => {
               setHot(null);
-              tip.hide();
+              tipHide();
             }}
           >
-            <span
-              className={`absolute -top-0.5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold text-[#0d2240] tabular-nums transition-opacity ${
-                hot === i ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              {format ? format(d.value) : d.value}
-            </span>
             <div
-              className="w-full rounded-t-[4px] transition-all duration-150"
+              className="absolute bottom-0 left-0 right-0 rounded-t-[4px] transition-all duration-150"
               style={{
                 height: `${Math.max(4, (d.value / max) * 100)}%`,
                 background: color,
                 opacity: hot === null || hot === i ? 1 : 0.25,
               }}
-            />
+            >
+              <span
+                className={`absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold text-[#0d2240] tabular-nums transition-opacity ${
+                  hot === i ? "opacity-100" : "opacity-0"
+                }`}
+              >
+                {format ? format(d.value) : d.value}
+              </span>
+            </div>
           </div>
         ))}
       </div>
@@ -240,7 +243,6 @@ type KpiCard = {
   tip: (e: { clientX: number; clientY: number }) => void;
 };export default function AnalyticsPage() {
   const supabase = createClient();
-  const tip = useTip();
   const [rows, setRows] = useState<Row[]>([]);
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -780,7 +782,7 @@ type KpiCard = {
                           style={{ opacity: hotDonut === null || hotDonut === i ? 1 : 0.15 }}
                           onMouseEnter={(e) => {
                             setHotDonut(i);
-                            tip.set({
+                            tipAt(e, {
                               heading: s.name,
                               rows: [
                                 ["Requests", shortNum(s.count)],
@@ -788,12 +790,11 @@ type KpiCard = {
                               ],
                               footer: "Click to filter the payments report.",
                             });
-                            tip.move(e.clientX + 14, e.clientY + 14);
                           }}
-                          onMouseMove={(e) => tip.move(e.clientX + 14, e.clientY + 14)}
+                          onMouseMove={tipFollow}
                           onMouseLeave={() => {
                             setHotDonut(null);
-                            tip.hide();
+                            tipHide();
                           }}
                           onClick={() => setSelectedDoc(selectedDoc === s.name ? null : s.name)}
                         />
@@ -822,7 +823,7 @@ type KpiCard = {
                         }`}
                         onMouseEnter={(e) => {
                           setHotDonut(i);
-                          tip.set({
+                          tipAt(e, {
                             heading: s.name,
                             rows: [
                               ["Requests", shortNum(s.count)],
@@ -830,12 +831,11 @@ type KpiCard = {
                             ],
                             footer: "Click to filter the payments report.",
                           });
-                          tip.move(e.clientX + 14, e.clientY + 14);
                         }}
-                        onMouseMove={(e) => tip.move(e.clientX + 14, e.clientY + 14)}
+                        onMouseMove={tipFollow}
                         onMouseLeave={() => {
                           setHotDonut(null);
-                          tip.hide();
+                          tipHide();
                         }}
                         onClick={() => setSelectedDoc(selectedDoc === s.name ? null : s.name)}
                       >
