@@ -23,6 +23,8 @@ export default function GuidanceApprovalsPage() {
   const [requests, setRequests] = useState<GoodMoralRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [decidingId, setDecidingId] = useState<number | null>(null);
+  const [rejectingId, setRejectingId] = useState<number | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   async function load() {
     setLoading(true);
@@ -41,12 +43,15 @@ export default function GuidanceApprovalsPage() {
     load();
   }, []);
 
-  async function decide(id: number, status: "Approved" | "Rejected") {
-    if (!window.confirm(`${status} this Good Moral Certificate request?`)) return;
+  async function decide(id: number, status: "Approved" | "Rejected", reason?: string) {
+    if (status === "Approved" && !window.confirm("Approve this Good Moral Certificate request?")) return;
     setDecidingId(id);
     const r = requests.find((req) => req.id === id);
     const { data: me } = await supabase.auth.getUser();
-    const { error } = await supabase.from("requests").update({ guidance_status: status }).eq("id", id);
+    const { error } = await supabase
+      .from("requests")
+      .update({ guidance_status: status, ...(status === "Rejected" && reason ? { remarks: reason } : {}) })
+      .eq("id", id);
     if (error) {
       toast.error("Failed to update approval.");
       setDecidingId(null);
@@ -55,25 +60,43 @@ export default function GuidanceApprovalsPage() {
     await supabase.from("status_history").insert({
       request_id: id,
       status: `Guidance ${status}`,
+      remarks: status === "Rejected" && reason ? reason : null,
     });
 
     if (r?.user_id && me?.user?.id) {
       const msg = status === "Approved"
         ? "Your Good Moral Certificate has been approved by the Guidance Department and is now being processed."
-        : "Your Good Moral Certificate request was not approved by the Guidance Department. Please contact the guidance office for details.";
+        : `Your Good Moral Certificate request was not approved by the Guidance Department.${reason ? ` Reason: ${reason}` : " Please contact the guidance office for details."}`;
       sendNotification({
         senderId: me.user.id,
         receiverId: r.user_id,
         message: msg,
         subject: `Good Moral Certificate — ${status}`,
         link: `/student/requests/${r.id}`,
-        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Document Request Update</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your Good Moral Certificate request (<strong>${r.tracking_code}</strong>) has been <strong>${status.toLowerCase()}</strong> by the Guidance Department.</p><p>${msg}</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Document Request Update</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your Good Moral Certificate request (<strong>${r.tracking_code}</strong>) has been <strong>${status.toLowerCase()}</strong> by the Guidance Department.</p><p>${msg}</p>${status === "Rejected" && reason ? `<p style="background:#FEF2F2;border-radius:8px;padding:12px;color:#B91C1C;"><strong>Reason:</strong><br/>${reason}</p>` : ""}<p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
       });
     }
 
     toast.success(`Request ${status.toLowerCase()}.`);
     setDecidingId(null);
     load();
+    return true;
+  }
+
+  function openReject(r: GoodMoralRequest) {
+    setRejectReason("");
+    setRejectingId(r.id);
+  }
+
+  async function confirmReject() {
+    if (rejectingId === null) return;
+    if (!rejectReason.trim()) {
+      toast.error("Please enter a reason for declining.");
+      return;
+    }
+    await decide(rejectingId, "Rejected", rejectReason.trim());
+    setRejectingId(null);
+    setRejectReason("");
   }
 
   return (
@@ -139,7 +162,7 @@ export default function GuidanceApprovalsPage() {
                 )}
                 {r.guidance_status !== "Rejected" && (
                   <button
-                    onClick={() => decide(r.id, "Rejected")}
+                    onClick={() => openReject(r)}
                     disabled={decidingId === r.id}
                     className="btn-outline"
                   >
@@ -149,6 +172,46 @@ export default function GuidanceApprovalsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {rejectingId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
+            <h3 className="text-base font-bold text-slate-900">Reject Good Moral Certificate</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Enter the reason for declining this request. It will be emailed to the student and shown on their request page.
+            </p>
+            <div className="mt-4">
+              <label className="label">Reason for declining</label>
+              <textarea
+                className="input min-h-[90px]"
+                placeholder="e.g. Incomplete class list, pending disciplinary clearance..."
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                className="btn-outline px-3 py-2 text-xs"
+                onClick={() => {
+                  setRejectingId(null);
+                  setRejectReason("");
+                }}
+                disabled={decidingId !== null}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={confirmReject}
+                disabled={!rejectReason.trim() || decidingId !== null}
+              >
+                {decidingId !== null ? "Declining…" : "Confirm Reject"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
