@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, FileText, Loader2, Upload, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import PasswordInput from "@/components/PasswordInput";
 import {
   validateNamePart,
   validateEmail,
@@ -287,8 +288,7 @@ export default function RegisterPage() {
               </div>
               <div>
                 <label className="label">Password</label>
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   minLength={8}
                   className="input"
@@ -301,8 +301,7 @@ export default function RegisterPage() {
               </div>
               <div>
                 <label className="label">Confirm Password</label>
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   minLength={8}
                   className="input"

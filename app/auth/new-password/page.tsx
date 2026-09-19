@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
+import PasswordInput from "@/components/PasswordInput";
 
 export default function NewPasswordPage() {
   return (
@@ -77,8 +78,7 @@ function NewPasswordForm() {
 
               <div>
                 <label className="label">New Password</label>
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   minLength={8}
                   className="input"
@@ -91,8 +91,7 @@ function NewPasswordForm() {
 
               <div>
                 <label className="label">Confirm Password</label>
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   minLength={8}
                   className="input"

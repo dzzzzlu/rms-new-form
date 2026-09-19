@@ -16,6 +16,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import PasswordInput from "@/components/PasswordInput";
 import type { Profile, Request } from "@/lib/types";
 import { validateContactNumber, titleCaseName } from "@/lib/validation";
 
@@ -366,8 +367,7 @@ export default function ProfilePage() {
         <form onSubmit={changePassword} className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
           <div>
             <label className="label">New Password</label>
-            <input
-              type="password"
+            <PasswordInput
               required
               minLength={8}
               className="input"
@@ -377,8 +377,7 @@ export default function ProfilePage() {
           </div>
           <div>
             <label className="label">Confirm Password</label>
-            <input
-              type="password"
+            <PasswordInput
               required
               minLength={8}
               className="input"

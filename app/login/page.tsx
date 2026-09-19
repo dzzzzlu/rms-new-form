@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import PasswordInput from "@/components/PasswordInput";
 import {
   ArrowRight,
   BarChart3,
@@ -336,8 +337,7 @@ function LoginForm() {
 
               <div>
                 <label className="label">Password</label>
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   className="input"
                   value={password}
