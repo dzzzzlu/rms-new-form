@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Send, MessageSquare } from "lucide-react";
+import { Send, MessageSquare, ArrowLeft } from "lucide-react";
 
 type Profile = { id: string; full_name: string; role: string };
 type Message = {
@@ -195,8 +195,11 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
 
   return (
     <div className="card flex h-[calc(100vh-10rem)] overflow-hidden p-0">
-      {/* Sidebar — conversations */}
-      <div className="flex w-72 flex-col border-r border-slate-200">
+      {/* Sidebar — conversations. On mobile only the list OR the chat is on
+          screen; the active pane takes the full width. */}
+      <div
+        className={`${activePartner ? "hidden" : "flex w-full"} flex-col border-r border-slate-200 md:flex md:w-72 md:shrink-0`}
+      >
         <div className="border-b border-slate-200 p-3">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-brand-900">Messages</h2>
@@ -296,8 +299,16 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
 
       {/* Main — messages */}
       {activePartner ? (
-        <div className="flex flex-1 flex-col">
+        <div className={`${activePartner ? "flex" : "hidden"} w-full flex-1 flex-col md:flex`}>
           <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
+            <button
+              type="button"
+              onClick={() => setActivePartner(null)}
+              aria-label="Back to conversations"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 md:hidden"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
               {activePartnerName.charAt(0).toUpperCase()}
             </div>
@@ -312,7 +323,7 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
               return (
                 <div key={m.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
+                    className={`max-w-[85%] rounded-2xl px-4 py-2.5 sm:max-w-[70%] ${
                       isMine
                         ? "rounded-br-md bg-brand-600 text-white"
                         : "rounded-bl-md bg-slate-100 text-slate-800"
@@ -364,7 +375,7 @@ export default function ChatPage({ userId, role }: { userId: string; role: strin
           </div>
         </div>
       ) : (
-        <div className="flex flex-1 flex-col items-center justify-center text-center">
+        <div className="hidden flex-1 flex-col items-center justify-center text-center md:flex">
           <MessageSquare className="mb-3 h-12 w-12 text-slate-200" />
           <p className="text-sm font-medium text-slate-500">Select a conversation</p>
           {!isStudent && <p className="text-xs text-slate-400">or start a new one from the sidebar</p>}
