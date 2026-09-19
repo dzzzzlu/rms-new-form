@@ -143,6 +143,8 @@ export default function ManageRequestsPage() {
   const [pickupTarget, setPickupTarget] = useState<PickupTarget | null>(null);
   const [pickupDate, setPickupDate] = useState("");
   const [pickupTime, setPickupTime] = useState("");
+  const [rejectTarget, setRejectTarget] = useState<RequestWithRelations | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const load = useCallback(async () => {
@@ -203,7 +205,7 @@ export default function ManageRequestsPage() {
     r: RequestWithRelations,
     status: string,
     pickupAt?: string | null,
-    scheduleRemarks?: string,
+    remarks?: string,
     skipConfirm?: boolean
   ) {
     if (guidanceBlocked(r, status)) return;
@@ -220,6 +222,7 @@ export default function ManageRequestsPage() {
     const { data: me } = await supabase.auth.getUser();
     const patch: Record<string, unknown> = { status };
     if (status === "Ready for Pickup") patch.pickup_at = pickupAt ?? null;
+    if (remarks) patch.remarks = remarks;
     let { data: updated, error } = await supabase.from("requests").update(patch).eq("id", r.id).select();
     if (error && status === "Ready for Pickup") {
       const retry = await supabase.from("requests").update({ status }).eq("id", r.id).select();
@@ -234,17 +237,20 @@ export default function ManageRequestsPage() {
     await supabase.from("status_history").insert({
       request_id: r.id,
       status,
-      remarks: status === "Ready for Pickup" ? scheduleRemarks ?? null : null,
+      remarks: remarks ?? null,
     });
 
     if (r.user_id && me?.user?.id) {
       const pickupLabel =
         status === "Ready for Pickup" && pickupAt ? formatPickup(new Date(pickupAt)) : "";
+      const isDecline = status === "Rejected" || status === "Cancelled";
       const message =
         status === "Ready for Pickup"
           ? pickupLabel
             ? `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) is ready for pickup. Please claim it on ${pickupLabel}.`
             : `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) is ready for pickup. Please coordinate with the registrar's office.`
+          : isDecline
+          ? `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) has been ${status.toLowerCase()}.${remarks ? ` Reason: ${remarks}` : ""}`
           : `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) status has been updated to "${status}".`;
       sendNotification({
         senderId: me.user.id,
@@ -253,6 +259,8 @@ export default function ManageRequestsPage() {
         subject:
           status === "Ready for Pickup"
             ? `Ready for Pickup${pickupLabel ? ` — ${pickupLabel}` : ""}`
+            : isDecline
+            ? `Request ${status} — ${r.tracking_code}`
             : `Request Status Update — ${status}`,
         link: `/student/requests/${r.id}`,
         html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Document Request Update</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p>${
@@ -261,6 +269,12 @@ export default function ManageRequestsPage() {
                 pickupLabel
                   ? `<p style="background:#EEF2FF;padding:12px;border-radius:8px;"><strong>Pickup schedule:</strong><br/>${pickupLabel}</p>`
                   : `<p>Please coordinate with the registrar's office for pickup details.</p>`
+              }`
+            : isDecline
+            ? `<p>Your <strong>${r.documents?.name ?? "document"}</strong> request (<strong>${r.tracking_code}</strong>) has been <strong>${status.toLowerCase()}</strong>.</p>${
+                remarks
+                  ? `<p style="background:#FEF2F2;border-radius:8px;padding:12px;color:#B91C1C;"><strong>Reason:</strong><br/>${remarks}</p>`
+                  : ""
               }`
             : `<p>Your <strong>${r.documents?.name ?? "document"}</strong> request (<strong>${r.tracking_code}</strong>) has been updated to <strong>${status}</strong>.</p>`
         }<p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
@@ -278,6 +292,24 @@ export default function ManageRequestsPage() {
     setPickupDate("");
     setPickupTime("");
     setPickupTarget({ kind: "single", r });
+  }
+
+  function openReject(r: RequestWithRelations) {
+    setRejectReason("");
+    setRejectTarget(r);
+  }
+
+  async function confirmReject() {
+    if (!rejectTarget) return;
+    const reason = rejectReason.trim();
+    if (!reason) {
+      toast.error(`Please enter a reason for ${isWalkIn(rejectTarget) ? "cancelling" : "rejecting"}.`);
+      return;
+    }
+    const status = isWalkIn(rejectTarget) ? "Cancelled" : "Rejected";
+    await updateStatus(rejectTarget, status, null, reason, true);
+    setRejectTarget(null);
+    setRejectReason("");
   }
 
   function handleStepClick(r: RequestWithRelations, stepIndex: number) {
@@ -656,10 +688,7 @@ export default function ManageRequestsPage() {
                             )}
                             {!isTerminal(r) && (
                               <button
-                                onClick={() => {
-                                  if (!window.confirm(`Reject "${r.documents?.name}" (${r.tracking_code})?`)) return;
-                                  updateStatus(r, walkin ? "Cancelled" : "Rejected");
-                                }}
+                                onClick={() => openReject(r)}
                                 disabled={updatingId !== null}
                                 className="rounded-lg border border-transparent px-2 py-1 text-[13px] font-medium text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
                               >
@@ -680,7 +709,7 @@ export default function ManageRequestsPage() {
 
       {pickupTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl">
+          <div className="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-xl bg-white p-5 shadow-xl">
             <h3 className="text-base font-bold text-slate-900">
               {pickupTarget.kind === "bulk" ? `Schedule pickup — ${pickupTarget.docs.length} requests` : "Schedule Pickup"}
             </h3>
@@ -701,12 +730,56 @@ export default function ManageRequestsPage() {
                 <input type="time" className="input" value={pickupTime} onChange={(e) => setPickupTime(e.target.value)} />
               </div>
             </div>
-            <div className="mt-5 flex justify-end gap-2">
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
               <button className="btn-outline px-3 py-2 text-xs" onClick={() => setPickupTarget(null)}>
                 Cancel
               </button>
               <button className="btn btn-primary" onClick={verifyPickupSchedule} disabled={updatingId !== null}>
                 {updatingId !== null ? "Saving…" : "Save Schedule"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rejectTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-5 shadow-xl">
+            <h3 className="text-base font-bold text-slate-900">
+              {isWalkIn(rejectTarget) ? "Cancel request" : "Reject request"}
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Enter the reason for {isWalkIn(rejectTarget) ? "cancelling" : "rejecting"}{" "}
+              <strong>{rejectTarget.documents?.name}</strong> ({rejectTarget.tracking_code}). It will be
+              emailed to the student and shown on their request page.
+            </p>
+            <div className="mt-4">
+              <label className="label">Reason</label>
+              <textarea
+                className="input min-h-[90px]"
+                placeholder="e.g. Requirements not met, duplicate request, unpaid balance..."
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button
+                className="btn-outline px-3 py-2 text-xs"
+                onClick={() => {
+                  setRejectTarget(null);
+                  setRejectReason("");
+                }}
+                disabled={updatingId !== null}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={confirmReject}
+                disabled={!rejectReason.trim() || updatingId !== null}
+              >
+                {updatingId !== null ? "Saving…" : isWalkIn(rejectTarget) ? "Confirm Cancel" : "Confirm Reject"}
               </button>
             </div>
           </div>

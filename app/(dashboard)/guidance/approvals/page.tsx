@@ -139,7 +139,7 @@ export default function GuidanceApprovalsPage() {
                 </p>
                 {r.purpose && <p className="mt-1 text-sm text-slate-600">Purpose: {r.purpose}</p>}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 <span
                   className={`badge ${
                     r.guidance_status === "Approved"
@@ -177,7 +177,7 @@ export default function GuidanceApprovalsPage() {
 
       {rejectingId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-5 shadow-xl">
             <h3 className="text-base font-bold text-slate-900">Reject Good Moral Certificate</h3>
             <p className="mt-1 text-sm text-slate-500">
               Enter the reason for declining this request. It will be emailed to the student and shown on their request page.
@@ -192,7 +192,7 @@ export default function GuidanceApprovalsPage() {
                 autoFocus
               />
             </div>
-            <div className="mt-5 flex justify-end gap-2">
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
               <button
                 className="btn-outline px-3 py-2 text-xs"
                 onClick={() => {

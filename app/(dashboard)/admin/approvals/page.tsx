@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { UserCheck, UserX, FileText, ExternalLink, Loader2 } from "lucide-react";
 import { sendEmailJS } from "@/lib/emailjs";
-import { accountApproved } from "@/lib/email-templates";
+import { accountApproved, accountRejected } from "@/lib/email-templates";
 import { titleCaseName } from "@/lib/validation";
 
 type PendingUser = {
@@ -31,6 +31,8 @@ export default function AdminApprovalsPage() {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [openingId, setOpeningId] = useState<string | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<PendingUser | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   async function load() {
     setLoading(true);
@@ -95,13 +97,30 @@ export default function AdminApprovalsPage() {
     load();
   }
 
-  async function reject(id: string) {
-    if (!window.confirm("Are you sure you want to reject this user? They will be removed from the system.")) return;
-    setProcessingId(id);
+  async function confirmReject() {
+    if (!rejectTarget) return;
+    const reason = rejectReason.trim();
+    if (!reason) {
+      toast.error("Please enter a reason for rejecting this account.");
+      return;
+    }
+    const u = rejectTarget;
+    setProcessingId(u.id);
+
+    try {
+      await sendEmailJS({
+        to: u.email,
+        subject: "Account Registration — Regis Marie College",
+        html: accountRejected(u.full_name, reason),
+      });
+    } catch (err) {
+      console.error("Rejection email error:", err);
+    }
+
     const res = await fetch("/api/admin/reject-user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: id }),
+      body: JSON.stringify({ userId: u.id }),
     });
     if (!res.ok) {
       const { error } = await res.json().catch(() => ({}));
@@ -111,6 +130,8 @@ export default function AdminApprovalsPage() {
     }
     toast.success("User rejected and removed.");
     setProcessingId(null);
+    setRejectTarget(null);
+    setRejectReason("");
     load();
   }
 
@@ -198,7 +219,7 @@ export default function AdminApprovalsPage() {
                   </button>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => approve(u)}
                   disabled={processingId === u.id}
@@ -208,7 +229,10 @@ export default function AdminApprovalsPage() {
                   {processingId === u.id ? "Processing…" : "Approve"}
                 </button>
                 <button
-                  onClick={() => reject(u.id)}
+                  onClick={() => {
+                    setRejectReason("");
+                    setRejectTarget(u);
+                  }}
                   disabled={processingId === u.id}
                   className="btn-outline flex items-center gap-1 text-red-600 hover:bg-red-50"
                 >
@@ -218,6 +242,48 @@ export default function AdminApprovalsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {rejectTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-5 shadow-xl">
+            <h3 className="text-base font-bold text-slate-900">Reject account</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Enter the reason for rejecting <strong>{titleCaseName(rejectTarget.full_name)}</strong> (
+              {rejectTarget.email}). The reason will be emailed to the applicant and the account will be
+              removed.
+            </p>
+            <div className="mt-4">
+              <label className="label">Reason for rejection</label>
+              <textarea
+                className="input min-h-[90px]"
+                placeholder="e.g. Verification document is unreadable, details don't match our records..."
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button
+                className="btn-outline px-3 py-2 text-xs"
+                onClick={() => {
+                  setRejectTarget(null);
+                  setRejectReason("");
+                }}
+                disabled={processingId !== null}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={confirmReject}
+                disabled={!rejectReason.trim() || processingId !== null}
+              >
+                {processingId !== null ? "Rejecting…" : "Confirm Reject"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

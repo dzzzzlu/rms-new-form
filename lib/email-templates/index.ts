@@ -85,3 +85,12 @@ export const accountApproved = (studentName: string) =>
     `<p style="color:#334155;font-size:14px;">Hi <strong>${studentName}</strong>,</p>
      <p style="color:#334155;font-size:14px;">Your Regis Marie College account has been <strong>approved</strong> by the administrator. You can now sign in and start requesting documents.</p>`
   );
+
+export const accountRejected = (studentName: string, reason: string) =>
+  wrapper(
+    "Account Registration Not Approved",
+    `<p style="color:#334155;font-size:14px;">Hi <strong>${studentName}</strong>,</p>
+     <p style="color:#334155;font-size:14px;">Your Regis Marie College account registration was <strong>not approved</strong> and the account has been removed from the system.</p>
+     <p style="background:#FEF2F2;border-radius:8px;padding:12px;color:#B91C1C;font-size:14px;text-align:left;"><strong>Reason:</strong><br/>${reason}</p>
+     <p style="color:#334155;font-size:14px;">If you believe this is a mistake, please contact the registrar's office to re-register with the correct details.</p>`
+  );
