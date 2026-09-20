@@ -57,7 +57,17 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [linkPrompt, setLinkPrompt] = useState<null | { count: number }>(null);
+  const [linkPrompt, setLinkPrompt] = useState<null | {
+    count: number;
+    records: Array<{
+      id: number;
+      tracking_code: string;
+      document_name: string | null;
+      course: string | null;
+      copies: number;
+      record_date: string | null;
+    }>;
+  }>(null);
   const [doc, setDoc] = useState<{ path: string; name: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [docError, setDocError] = useState<string | null>(null);
@@ -179,7 +189,7 @@ export default function RegisterPage() {
       const count = res.ok ? Number(data.count ?? 0) : 0;
       setChecking(false);
       if (count > 0) {
-        setLinkPrompt({ count });
+        setLinkPrompt({ count, records: data.records ?? [] });
         return;
       }
     } catch {
@@ -584,8 +594,34 @@ export default function RegisterPage() {
                   {linkPrompt.count} past document request record
                   {linkPrompt.count === 1 ? "" : "s"}
                 </strong>{" "}
-                under this email/student number. Would you like to link them to your new account?
+                under this email or student number. Would you like to link them to your new account?
               </p>
+              <ul className="max-h-40 space-y-1.5 overflow-y-auto rounded-lg border border-slate-100 p-2.5">
+                {linkPrompt.records.slice(0, 5).map((r) => (
+                  <li key={r.id} className="flex items-baseline justify-between gap-2 text-[13px]">
+                    <span className="min-w-0 truncate font-medium text-slate-800">
+                      {r.document_name ?? "Unknown document"}
+                    </span>
+                    <span className="shrink-0 text-slate-500">
+                      {r.record_date
+                        ? new Date(r.record_date).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : r.copies > 1
+                        ? `${r.copies} copies`
+                        : ""}
+                    </span>
+                  </li>
+                ))}
+                {linkPrompt.count > linkPrompt.records.slice(0, 5).length && (
+                  <li className="text-xs text-slate-400">
+                    + {linkPrompt.count - linkPrompt.records.slice(0, 5).length} more record
+                    {linkPrompt.count - linkPrompt.records.slice(0, 5).length === 1 ? "" : "s"}…
+                  </li>
+                )}
+              </ul>
               <p className="text-xs text-slate-400">
                 This only adds earlier records to your account history — it creates no payment
                 obligations. You can also do this later from your profile settings.
