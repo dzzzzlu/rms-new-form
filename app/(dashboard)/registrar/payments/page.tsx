@@ -178,7 +178,27 @@ export default function VerifyPaymentsPage() {
                 ₱{p.amount}
               </p>
 
-              {rejectingId === p.id ? (
+              {tab === "History" ? (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
+                      p.status === "Verified" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                    }`}>
+                      {p.status}
+                    </span>
+                    {p.verified_at && (
+                      <p className="text-xs text-slate-500">
+                        {new Date(p.verified_at).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                  {p.status === "Rejected" && p.rejection_reason && (
+                    <p className="mt-2 text-xs text-slate-600">
+                      Reason: <span className="font-medium">{p.rejection_reason}</span>
+                    </p>
+                  )}
+                </div>
+              ) : rejectingId === p.id ? (
                 <div className="space-y-2">
                   <textarea
                     className="input min-h-[60px]"
