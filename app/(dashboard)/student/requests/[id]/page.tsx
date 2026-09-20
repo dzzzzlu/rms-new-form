@@ -67,7 +67,7 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
 
       <div className="card space-y-3">
         <h3 className="font-semibold text-brand-900">Details</h3>
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
           <div>
             <p className="text-slate-500">Purpose</p>
             <p className="font-medium text-slate-800">{request.purpose || "—"}</p>
@@ -138,7 +138,7 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
       {payment && (
         <div className="card space-y-2">
           <h3 className="font-semibold text-brand-900">Payment</h3>
-          <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
             <div>
               <p className="text-slate-500">GCash Reference</p>
               <p className="font-medium text-slate-800">{payment.gcash_reference}</p>

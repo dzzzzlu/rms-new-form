@@ -32,7 +32,7 @@ export default function DashboardShell({
   return (
     <div className="min-h-screen bg-slate-50">
       <Sidebar role={role} fullName={fullName} userId={userId} open={open} onClose={() => setOpen(false)} />
-      <div className="lg:pl-64">
+      <div className="flex min-w-0 flex-col lg:pl-64">
         <Topbar
           title={title}
           userId={userId}
@@ -41,7 +41,7 @@ export default function DashboardShell({
           onRefresh={handleRefresh}
           refreshing={refreshing}
         />
-        <main key={refreshKey} className="p-5">
+        <main key={refreshKey} className="min-w-0 flex-1 p-4 sm:p-5 lg:p-6">
           {children}
         </main>
       </div>

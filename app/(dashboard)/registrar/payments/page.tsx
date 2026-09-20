@@ -33,7 +33,16 @@ export default function VerifyPaymentsPage() {
       query = query.in("status", ["Verified", "Rejected"]);
     }
     const { data } = await query;
-    setPayments((data as unknown as PaymentRow[]) ?? []);
+    const rows = (data as unknown as PaymentRow[]) ?? [];
+    if (tab === "History") {
+      const order = { walk_in: 0, gcash: 1 } as Record<string, number>;
+      rows.sort((a, b) => {
+        const diff = (order[a.payment_method] ?? 2) - (order[b.payment_method] ?? 2);
+        if (diff !== 0) return diff;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+    }
+    setPayments(rows);
 
     const signedUrls = await Promise.all(
       (data ?? []).map(async (p) => {

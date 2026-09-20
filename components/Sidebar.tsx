@@ -20,6 +20,7 @@ import {
   MessageSquare,
   UserCheck,
   LogOut,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import { titleCaseName } from "@/lib/validation";
@@ -127,14 +128,23 @@ export default function Sidebar({
           ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="border-b border-white/10 px-5 py-5">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10">
-              <Image src="/rmclogo.jpg" alt="Regis Marie College" width={28} height={28} className="rounded-md" />
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10">
+                <Image src="/rmclogo.jpg" alt="Regis Marie College" width={28} height={28} className="rounded-md" />
+              </div>
+              <div>
+                <p className="text-sm font-bold leading-tight">Regis Marie College</p>
+                <p className="text-[11px] text-brand-200">Document Request System</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-bold leading-tight">Regis Marie College</p>
-              <p className="text-[11px] text-brand-200">Document Request System</p>
-            </div>
+            <button
+              onClick={onClose}
+              className="flex h-11 w-11 items-center justify-center rounded-lg text-brand-200 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
+              aria-label="Close menu"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
           <span className="mt-3 inline-block rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-brand-100">
             {ROLE_LABEL[role]}
@@ -154,7 +164,7 @@ export default function Sidebar({
                   <Link
                     href={item.href}
                     onClick={onClose}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors
+                    className={`flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors
                       ${
                         active
                           ? "bg-white/15 text-white shadow-inner"
@@ -180,7 +190,7 @@ export default function Sidebar({
           <p className="mb-3 text-xs text-brand-200">{ROLE_LABEL[role]}</p>
           <button
             onClick={handleLogout}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-white/10 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/20"
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-white/10 text-sm font-semibold text-white transition-colors hover:bg-white/20"
           >
             <LogOut className="h-4 w-4" />
             Logout
