@@ -147,53 +147,93 @@ export default function AdminUsersPage() {
         </select>
       </div>
 
-      <div className="card overflow-x-auto">
+      <div className="card">
         {loading ? (
           <p className="text-sm text-slate-500">Loading…</p>
         ) : (
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase text-slate-500">
-                <th className="px-3 py-2.5">Name</th>
-                <th className="px-3 py-2.5">Student No.</th>
-                <th className="px-3 py-2.5">Email</th>
-                <th className="px-3 py-2.5">Role</th>
-                <th className="px-3 py-2.5">Status</th>
-                <th className="px-3 py-2.5">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            <div className="divide-y divide-slate-100 md:hidden">
               {paginated.map((u) => (
-                <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-3 py-2.5 font-medium text-slate-800">{titleCaseName(u.full_name)}</td>
-                  <td className="px-3 py-2.5 text-slate-600">{u.student_number ?? "—"}</td>
-                  <td className="px-3 py-2.5 text-slate-600">{u.email}</td>
-                  <td className="px-3 py-2.5 capitalize">{u.role}</td>
-                  <td className="px-3 py-2.5">
-                    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${u.is_active ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+                <div key={u.id} className="py-3">
+                  <p className="font-semibold text-slate-900">{titleCaseName(u.full_name)}</p>
+                  <p className="break-all text-sm text-slate-500">{u.email}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">Student No.: {u.student_number ?? "—"}</span>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs capitalize text-slate-600">Role: {u.role}</span>
+                    <span className={`rounded-full px-3 py-1 text-xs font-medium ${u.is_active ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
                       {u.is_active ? "Active" : "Archived"}
                     </span>
-                  </td>
-                  <td className="flex gap-2 px-3 py-2.5">
-                    <button onClick={() => setEditing(u)} className="text-sm font-medium text-brand-600 hover:underline">Edit</button>
-                    <button onClick={() => toggleActive(u.id, u.is_active)} className={`text-sm font-medium hover:underline ${u.is_active ? "text-red-600" : "text-emerald-600"}`}>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1">
+                    <button onClick={() => setEditing(u)} className="py-2 text-sm font-medium text-brand-600">
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => toggleActive(u.id, u.is_active)}
+                      className={`py-2 text-sm font-medium ${u.is_active ? "text-red-600" : "text-emerald-600"}`}
+                    >
                       {u.is_active ? "Archive" : "Activate"}
                     </button>
                     <button
                       onClick={() => deleteUser(u)}
                       disabled={deletingId === u.id || u.id === me}
-                      className="text-sm font-medium text-red-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                      className="py-2 text-sm font-medium text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {deletingId === u.id ? "Deleting…" : u.id === me ? "You" : "Delete"}
                     </button>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
               {paginated.length === 0 && (
-                <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-400">No users found.</td></tr>
+                <p className="py-6 text-center text-sm text-slate-400">No users found.</p>
               )}
-            </tbody>
-          </table>
+            </div>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase text-slate-500">
+                    <th className="px-3 py-2.5">Name</th>
+                    <th className="px-3 py-2.5">Student No.</th>
+                    <th className="px-3 py-2.5">Email</th>
+                    <th className="px-3 py-2.5">Role</th>
+                    <th className="px-3 py-2.5">Status</th>
+                    <th className="px-3 py-2.5">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginated.map((u) => (
+                    <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="px-3 py-2.5 font-medium text-slate-800">{titleCaseName(u.full_name)}</td>
+                      <td className="px-3 py-2.5 text-slate-600">{u.student_number ?? "—"}</td>
+                      <td className="px-3 py-2.5 text-slate-600">{u.email}</td>
+                      <td className="px-3 py-2.5 capitalize">{u.role}</td>
+                      <td className="px-3 py-2.5">
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${u.is_active ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+                          {u.is_active ? "Active" : "Archived"}
+                        </span>
+                      </td>
+                      <td className="flex gap-2 px-3 py-2.5">
+                        <button onClick={() => setEditing(u)} className="text-sm font-medium text-brand-600 hover:underline">Edit</button>
+                        <button onClick={() => toggleActive(u.id, u.is_active)} className={`text-sm font-medium hover:underline ${u.is_active ? "text-red-600" : "text-emerald-600"}`}>
+                          {u.is_active ? "Archive" : "Activate"}
+                        </button>
+                        <button
+                          onClick={() => deleteUser(u)}
+                          disabled={deletingId === u.id || u.id === me}
+                          className="text-sm font-medium text-red-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {deletingId === u.id ? "Deleting…" : u.id === me ? "You" : "Delete"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {paginated.length === 0 && (
+                    <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-400">No users found.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

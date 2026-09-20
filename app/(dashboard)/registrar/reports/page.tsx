@@ -83,29 +83,44 @@ export default function ReportsPage() {
           <p className="text-sm font-medium text-slate-500">No request data yet.</p>
         </div>
       ) : (
-        <div className="card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-slate-500">
-                <th className="py-2 pr-4">Tracking</th>
-                <th className="py-2 pr-4">Requestor</th>
-                <th className="py-2 pr-4">Document</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr key={i} className="table-row border-b border-slate-50">
-                  <td className="py-2.5 pr-4">{r.tracking_code}</td>
-                  <td className="py-2.5 pr-4">{r.profiles?.full_name}</td>
-                  <td className="py-2.5 pr-4">{r.documents?.name}</td>
-                  <td className="py-2.5 pr-4">{r.status}</td>
-                  <td className="py-2.5 pr-4">{new Date(r.created_at).toLocaleDateString()}</td>
+        <div className="card">
+          <div className="divide-y divide-slate-100 md:hidden">
+            {rows.map((r, i) => (
+              <div key={i} className="py-3">
+                <p className="font-medium text-brand-700">{r.tracking_code}</p>
+                <p className="font-semibold text-slate-900">{r.profiles?.full_name}</p>
+                <p className="break-all text-sm text-slate-500">{r.documents?.name}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs capitalize text-slate-600">Status: {r.status}</span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">Date: {new Date(r.created_at).toLocaleDateString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-slate-500">
+                  <th className="py-2 pr-4">Tracking</th>
+                  <th className="py-2 pr-4">Requestor</th>
+                  <th className="py-2 pr-4">Document</th>
+                  <th className="py-2 pr-4">Status</th>
+                  <th className="py-2 pr-4">Date</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i} className="table-row border-b border-slate-50">
+                    <td className="py-2.5 pr-4">{r.tracking_code}</td>
+                    <td className="py-2.5 pr-4">{r.profiles?.full_name}</td>
+                    <td className="py-2.5 pr-4">{r.documents?.name}</td>
+                    <td className="py-2.5 pr-4">{r.status}</td>
+                    <td className="py-2.5 pr-4">{new Date(r.created_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

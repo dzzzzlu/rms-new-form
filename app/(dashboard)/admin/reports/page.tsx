@@ -67,29 +67,46 @@ export default function AdminReportsPage() {
           <p className="text-sm font-medium text-slate-500">No user data yet.</p>
         </div>
       ) : (
-        <div className="card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-slate-500">
-                <th className="py-2 pr-4">Name</th>
-                <th className="py-2 pr-4">Email</th>
-                <th className="py-2 pr-4">Role</th>
-                <th className="py-2 pr-4">Active</th>
-                <th className="py-2 pr-4">Joined</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u, i) => (
-                <tr key={i} className="table-row border-b border-slate-50">
-                  <td className="py-2.5 pr-4">{u.full_name}</td>
-                  <td className="py-2.5 pr-4">{u.email}</td>
-                  <td className="py-2.5 pr-4">{u.role}</td>
-                  <td className="py-2.5 pr-4">{u.is_active ? "Yes" : "No"}</td>
-                  <td className="py-2.5 pr-4">{new Date(u.created_at).toLocaleDateString()}</td>
+        <div className="card">
+          <div className="divide-y divide-slate-100 md:hidden">
+            {users.map((u, i) => (
+              <div key={i} className="py-3">
+                <p className="font-semibold text-slate-900">{u.full_name}</p>
+                <p className="break-all text-sm text-slate-500">{u.email}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs capitalize text-slate-600">Role: {u.role}</span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${u.is_active ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+                    Active: {u.is_active ? "Yes" : "No"}
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">Joined: {new Date(u.created_at).toLocaleDateString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-slate-500">
+                  <th className="py-2 pr-4">Name</th>
+                  <th className="py-2 pr-4">Email</th>
+                  <th className="py-2 pr-4">Role</th>
+                  <th className="py-2 pr-4">Active</th>
+                  <th className="py-2 pr-4">Joined</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {users.map((u, i) => (
+                  <tr key={i} className="table-row border-b border-slate-50">
+                    <td className="py-2.5 pr-4">{u.full_name}</td>
+                    <td className="py-2.5 pr-4">{u.email}</td>
+                    <td className="py-2.5 pr-4">{u.role}</td>
+                    <td className="py-2.5 pr-4">{u.is_active ? "Yes" : "No"}</td>
+                    <td className="py-2.5 pr-4">{new Date(u.created_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
