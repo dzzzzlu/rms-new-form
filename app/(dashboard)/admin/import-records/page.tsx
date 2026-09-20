@@ -4,13 +4,7 @@ import { useState } from "react";
 import Papa from "papaparse";
 import { createClient } from "@/lib/supabase/client";
 
-type Row = {
-  student_email: string;
-  document_name: string;
-  status: string;
-  copies?: string;
-  date?: string;
-};
+type Row = Record<string, string>;
 
 function trackingCode() {
   return "RM-" + Date.now().toString(36).toUpperCase() + "-" + Math.floor(Math.random() * 900 + 100);
@@ -19,6 +13,7 @@ function trackingCode() {
 export default function ImportRecordsPage() {
   const supabase = createClient();
   const [rows, setRows] = useState<Row[]>([]);
+  const [headers, setHeaders] = useState<string[]>([]);
   const [fileName, setFileName] = useState("");
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<{ ok: number; failed: string[] } | null>(null);
@@ -29,7 +24,10 @@ export default function ImportRecordsPage() {
     Papa.parse<Row>(file, {
       header: true,
       skipEmptyLines: true,
-      complete: (res) => setRows(res.data),
+      complete: (res) => {
+        setHeaders(res.meta.fields ?? []);
+        setRows(res.data);
+      },
     });
   }
 
@@ -121,21 +119,21 @@ export default function ImportRecordsPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b bg-slate-50 text-left">
-                    <th className="p-2">Email</th>
-                    <th className="p-2">Document</th>
-                    <th className="p-2">Status</th>
-                    <th className="p-2">Copies</th>
-                    <th className="p-2">Date</th>
+                    {headers.map((h) => (
+                      <th key={h} className="whitespace-nowrap p-2 font-semibold capitalize">
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {rows.slice(0, 5).map((r, i) => (
                     <tr key={i} className="border-b">
-                      <td className="p-2">{r.student_email}</td>
-                      <td className="p-2">{r.document_name}</td>
-                      <td className="p-2">{r.status}</td>
-                      <td className="p-2">{r.copies}</td>
-                      <td className="p-2">{r.date}</td>
+                      {headers.map((h) => (
+                        <td key={h} className="whitespace-nowrap p-2">
+                          {r[h]}
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
