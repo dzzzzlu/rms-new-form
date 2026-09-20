@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { sendEmailJS } from "@/lib/emailjs";
 import { accountWaitingApproval } from "@/lib/email-templates";
 import { titleCaseName } from "@/lib/validation";
+import { linkUnlinkedRecords } from "@/lib/unlinked-records";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
       is_alumni,
       verification_doc_path,
       verification_doc_name,
+      link_records,
     } = await req.json();
     if (!email || !code) return NextResponse.json({ error: "Email and code are required." }, { status: 400 });
 
@@ -256,7 +258,24 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ success: true });
+    // The student opted in during registration: link any unlinked historical
+    // records that match this email or student number to their new account.
+    // Only student_id IS NULL rows are touched — already-linked records are
+    // never overwritten. This is data-only; it creates no credentials.
+    let linked = 0;
+    if (link_records) {
+      try {
+        linked = await linkUnlinkedRecords(supabase, {
+          email: String(email ?? ""),
+          studentNumber: String(student_number ?? ""),
+          userId: authUserId,
+        });
+      } catch (err) {
+        console.error("Link imported records error:", err);
+      }
+    }
+
+    return NextResponse.json({ success: true, linked });
   } catch {
     return NextResponse.json({ error: "Verification failed." }, { status: 500 });
   }

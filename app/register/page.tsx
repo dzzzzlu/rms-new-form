@@ -56,6 +56,8 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [linkPrompt, setLinkPrompt] = useState<null | { count: number }>(null);
   const [doc, setDoc] = useState<{ path: string; name: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [docError, setDocError] = useState<string | null>(null);
@@ -161,6 +163,37 @@ export default function RegisterPage() {
       return;
     }
 
+    if (linkPrompt) return;
+
+    // Before creating the account, check for unlinked historical records under
+    // this email or student number. If any exist the student gets an explicit
+    // choice (never an automatic link) right here during registration.
+    setChecking(true);
+    try {
+      const res = await fetch("/api/records/unlinked-match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email, student_number: form.student_number.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      const count = res.ok ? Number(data.count ?? 0) : 0;
+      setChecking(false);
+      if (count > 0) {
+        setLinkPrompt({ count });
+        return;
+      }
+    } catch {
+      setChecking(false);
+      // If the match lookup fails for any reason, registration continues
+      // normally without the prompt.
+    }
+
+    await proceedSubmit(false);
+  }
+
+  async function proceedSubmit(linkRecords: boolean) {
+    setError(null);
+    setLinkPrompt(null);
     setLoading(true);
 
     const firstName = titleCaseName(form.first_name);
@@ -205,6 +238,7 @@ export default function RegisterPage() {
         is_alumni: isAlumni,
         verification_doc_path: doc?.path ?? null,
         verification_doc_name: doc?.name ?? null,
+        link_records: linkRecords,
       })
     );
 
@@ -521,8 +555,8 @@ export default function RegisterPage() {
                 >
                   <ChevronLeft className="h-4 w-4" /> Back
                 </button>
-                <button type="submit" disabled={loading} className="btn-primary flex-1">
-                  {loading ? "Creating account…" : "Create Account"}
+                <button type="submit" disabled={loading || checking} className="btn-primary flex-1">
+                  {checking ? "Checking for past records…" : loading ? "Creating account…" : "Create Account"}
                 </button>
               </>
             ) : (
@@ -539,6 +573,42 @@ export default function RegisterPage() {
             </Link>
           </p>
         </form>
+
+        {linkPrompt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="card w-full max-w-md space-y-4">
+              <h3 className="text-lg font-bold text-brand-900">Past records found</h3>
+              <p className="text-sm leading-relaxed text-slate-600">
+                We found{" "}
+                <strong className="text-slate-900">
+                  {linkPrompt.count} past document request record
+                  {linkPrompt.count === 1 ? "" : "s"}
+                </strong>{" "}
+                under this email/student number. Would you like to link them to your new account?
+              </p>
+              <p className="text-xs text-slate-400">
+                This only adds earlier records to your account history — it creates no payment
+                obligations. You can also do this later from your profile settings.
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => proceedSubmit(true)}
+                  className="btn-primary flex-1"
+                >
+                  Yes, link my records
+                </button>
+                <button
+                  type="button"
+                  onClick={() => proceedSubmit(false)}
+                  className="btn-outline flex-1"
+                >
+                  No, skip this
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

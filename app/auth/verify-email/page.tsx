@@ -53,6 +53,7 @@ function VerifyEmailForm() {
               is_alumni: Boolean(p.is_alumni),
               verification_doc_path: p.verification_doc_path ?? null,
               verification_doc_name: p.verification_doc_name ?? null,
+              link_records: Boolean(p.link_records),
             });
           }
         }

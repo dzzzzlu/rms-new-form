@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Clock,
   KeyRound,
+  Link2,
   Mail,
   Phone,
   ScrollText,
@@ -65,6 +66,23 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
+
+  const [recordsState, setRecordsState] = useState<
+    "idle" | "checking" | "none" | "found"
+  >("idle");
+  const [recordsResult, setRecordsResult] = useState<{
+    count: number;
+    records: Array<{
+      id: number;
+      tracking_code: string;
+      document_name: string | null;
+      course: string | null;
+      copies: number;
+      record_date: string | null;
+    }>;
+  } | null>(null);
+  const [linkingRecords, setLinkingRecords] = useState(false);
+  const [recordsMessage, setRecordsMessage] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -181,6 +199,54 @@ export default function ProfilePage() {
     setNewPassword("");
     setConfirmPassword("");
     toast.success("Password updated.");
+  }
+
+  async function checkPastRecords() {
+    if (!profile) return;
+    setRecordsMessage(null);
+    setRecordsState("checking");
+    try {
+      const res = await fetch("/api/records/unlinked-match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: profile.email, student_number: profile.student_number ?? "" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setRecordsState("idle");
+        setRecordsMessage(data.error ?? "Could not check for past records.");
+        return;
+      }
+      setRecordsResult(data);
+      setRecordsState(Number(data.count ?? 0) > 0 ? "found" : "none");
+    } catch {
+      setRecordsState("idle");
+      setRecordsMessage("Could not check for past records. Please try again.");
+    }
+  }
+
+  async function linkPastRecords() {
+    if (!profile) return;
+    setLinkingRecords(true);
+    setRecordsMessage(null);
+    try {
+      const res = await fetch("/api/records/link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setRecordsMessage(data.error ?? "Could not link past records.");
+        return;
+      }
+      toast.success(
+        `${data.linked} past record${data.linked === 1 ? "" : "s"} linked to your account.`
+      );
+      setRecordsResult(null);
+      setRecordsState("none");
+    } finally {
+      setLinkingRecords(false);
+    }
   }
 
   const status =
@@ -390,6 +456,72 @@ export default function ProfilePage() {
             {changingPassword ? "Saving…" : "Change"}
           </button>
         </form>
+      </div>
+
+      {/* Past records (link unlinked/historical records) */}
+      <div className="card">
+        <div className="mb-4 flex items-center gap-2">
+          <Link2 className="h-5 w-5 text-brand-500" />
+          <h2 className="text-lg font-bold text-brand-900">Past Records</h2>
+        </div>
+        <p className="text-sm text-slate-500">
+          Old records from before the system existed that match your email or student number can be
+          added to your account history — this creates no account and no login for anyone.
+        </p>
+        <div className="mt-3">
+          {recordsState === "idle" && (
+            <button onClick={checkPastRecords} className="btn-outline">
+              Check for unlinked past records
+            </button>
+          )}
+          {recordsState === "checking" && (
+            <p className="text-sm text-slate-500">Checking…</p>
+          )}
+          {recordsState === "none" && (
+            <p className="text-sm font-medium text-emerald-700">
+              No unlinked past records found under your email or student number.
+            </p>
+          )}
+          {recordsState === "found" && recordsResult && (
+            <div className="space-y-3">
+              <p className="text-sm text-brand-700">
+                Found <strong>{recordsResult.count}</strong> unlinked past record
+                {recordsResult.count === 1 ? "" : "s"} matching your email or student number:
+              </p>
+              <ul className="max-h-48 space-y-1.5 overflow-y-auto rounded-lg border border-slate-100 p-2">
+                {recordsResult.records.map((r) => (
+                  <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-slate-50">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-800">
+                        {r.document_name ?? "Unknown document"}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {r.tracking_code}
+                        {r.record_date ? ` · ${new Date(r.record_date).toLocaleDateString()}` : ""}
+                        {r.copies > 1 ? ` · ${r.copies} copies` : ""}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={linkPastRecords} disabled={linkingRecords} className="btn-primary">
+                  {linkingRecords ? "Linking…" : `Yes, link my records`}
+                </button>
+                <button
+                  onClick={() => {
+                    setRecordsState("none");
+                    setRecordsResult(null);
+                  }}
+                  className="btn-outline"
+                >
+                  Not now
+                </button>
+              </div>
+            </div>
+          )}
+          {recordsMessage && <p className="mt-2 text-xs text-red-600">{recordsMessage}</p>}
+        </div>
       </div>
 
       {/* Recent requests */}
