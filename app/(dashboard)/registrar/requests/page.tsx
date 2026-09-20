@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { RequestWithRelations } from "@/lib/types";
 import { sendNotification } from "@/lib/notify";
 import { printName, titleCaseName } from "@/lib/validation";
-import { Search, Inbox, Clock, Check, X } from "lucide-react";
+import { Search, Inbox, Clock, Check } from "lucide-react";
 import { toast } from "sonner";
 import PrintDocument, { type PrintDoc } from "@/components/PrintDocument";
 
@@ -131,7 +131,7 @@ function toPrintDoc(r: RequestWithRelations): PrintDoc {
   };
 }
 
-type PickupTarget = { kind: "single"; r: RequestWithRelations } | { kind: "bulk"; docs: RequestWithRelations[] };
+type PickupTarget = { r: RequestWithRelations };
 
 export default function ManageRequestsPage() {
   const supabase = createClient();
@@ -143,9 +143,8 @@ export default function ManageRequestsPage() {
   const [pickupTarget, setPickupTarget] = useState<PickupTarget | null>(null);
   const [pickupDate, setPickupDate] = useState("");
   const [pickupTime, setPickupTime] = useState("");
-  const [rejectTarget, setRejectTarget] = useState<RequestWithRelations | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+const [rejectTarget, setRejectTarget] = useState<RequestWithRelations | null>(null);
+const [rejectReason, setRejectReason] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -181,13 +180,10 @@ export default function ManageRequestsPage() {
         e.preventDefault();
         document.getElementById("request-search")?.focus();
       }
-      if (e.key === "Escape" && selected.size > 0) {
-        setSelected(new Set());
-      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selected.size]);
+  }, []);
 
   function guidanceBlocked(r: RequestWithRelations, status: string): boolean {
     if (
@@ -291,7 +287,7 @@ export default function ManageRequestsPage() {
     if (guidanceBlocked(r, "Ready for Pickup")) return;
     setPickupDate("");
     setPickupTime("");
-    setPickupTarget({ kind: "single", r });
+    setPickupTarget({ r });
   }
 
   function openReject(r: RequestWithRelations) {
@@ -346,79 +342,32 @@ export default function ManageRequestsPage() {
       return;
     }
     const label = formatPickup(pickupAt);
-    const docs = pickupTarget.kind === "single" ? [pickupTarget.r] : pickupTarget.docs;
-    for (const r of docs) {
-      if (guidanceBlocked(r, "Ready for Pickup")) continue;
-      await supabase
-        .from("requests")
-        .update({ status: "Ready for Pickup", pickup_at: pickupAt.toISOString() })
-        .eq("id", r.id);
-      await supabase.from("status_history").insert({
-        request_id: r.id,
-        status: "Ready for Pickup",
-        remarks: `Pickup scheduled on ${label}.`,
+    const r = pickupTarget.r;
+    if (guidanceBlocked(r, "Ready for Pickup")) return;
+    await supabase
+      .from("requests")
+      .update({ status: "Ready for Pickup", pickup_at: pickupAt.toISOString() })
+      .eq("id", r.id);
+    await supabase.from("status_history").insert({
+      request_id: r.id,
+      status: "Ready for Pickup",
+      remarks: `Pickup scheduled on ${label}.`,
+    });
+    const { data: me } = await supabase.auth.getUser();
+    if (r.user_id && me?.user?.id) {
+      sendNotification({
+        senderId: me.user.id,
+        receiverId: r.user_id,
+        message: `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) is ready for pickup. Please claim it on ${label}.`,
+        subject: `Ready for Pickup — ${label}`,
+        link: `/student/requests/${r.id}`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Ready for Pickup</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your <strong>${r.documents?.name ?? "document"}</strong> request (<strong>${r.tracking_code}</strong>) is <strong style="color:#4F46E5;">ready for pickup</strong>.</p><p style="background:#EEF2FF;padding:12px;border-radius:8px;"><strong>Pickup schedule:</strong><br/>${label}</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
       });
-      const { data: me } = await supabase.auth.getUser();
-      if (r.user_id && me?.user?.id) {
-        sendNotification({
-          senderId: me.user.id,
-          receiverId: r.user_id,
-          message: `Your ${r.documents?.name ?? "document"} request (${r.tracking_code}) is ready for pickup. Please claim it on ${label}.`,
-          subject: `Ready for Pickup — ${label}`,
-          link: `/student/requests/${r.id}`,
-          html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;"><h2 style="color:#0B3068;">Regis Marie College — Ready for Pickup</h2><p>Hi ${r.profiles?.full_name ?? "there"},</p><p>Your <strong>${r.documents?.name ?? "document"}</strong> request (<strong>${r.tracking_code}</strong>) is <strong style="color:#4F46E5;">ready for pickup</strong>.</p><p style="background:#EEF2FF;padding:12px;border-radius:8px;"><strong>Pickup schedule:</strong><br/>${label}</p><p style="color:#64748b;font-size:12px;margin-top:24px;">This is an automated message from the Regis Marie College Document Request System.</p></div>`,
-        });
-      }
     }
-    toast.success(
-      docs.length > 1
-        ? `${docs.length} requests set to Ready for Pickup — ${label}.`
-        : `"${docs[0].documents?.name}" set to Ready for Pickup — ${label}. Mark it Completed once the student picks it up.`
-    );
+    toast.success(`"${r.documents?.name}" set to Ready for Pickup — ${label}. Mark it Completed once the student picks it up.`);
     setPickupTarget(null);
     load();
   }
-
-  async function bulkAction(kind: "print" | "ready" | "released") {
-    const ids = [...selected];
-    const docs = requests.filter((r) => ids.includes(r.id));
-    if (docs.length === 0) return;
-
-    if (kind === "print") {
-      setSelected(new Set());
-      return;
-    }
-
-    if (kind === "ready") {
-      const eligible = docs.filter((r) => !isWalkIn(r) && !isTerminal(r));
-      if (eligible.length === 0) {
-        toast.error("No selectable requests can be marked ready (walk-in requests don't schedule pickups).");
-        return;
-      }
-      setPickupDate("");
-      setPickupTime("");
-      setPickupTarget({ kind: "bulk", docs: eligible });
-      return;
-    }
-
-    if (kind === "released") {
-      const confirmed = window.confirm(
-        `Mark ${docs.length} selected request${docs.length > 1 ? "s" : ""} as Completed? Confirm the documents have already been handed over.`
-      );
-      if (!confirmed) return;
-      let done = 0;
-      for (const r of docs) {
-        if (guidanceBlocked(r, "Completed")) continue;
-        const ok = await updateStatus(r, "Completed", null, undefined, true);
-        if (ok) done++;
-      }
-      toast.success(`${done} request${done !== 1 ? "s" : ""} marked as Completed.`);
-      setSelected(new Set());
-      load();
-    }
-  }
-
-  const selectedDocs = selected.size ? requests.filter((r) => selected.has(r.id)) : [];
 
   const counts = useMemo(() => {
     const base: Record<string, number> = { All: requests.length };
@@ -453,15 +402,6 @@ export default function ManageRequestsPage() {
 
   const openCount = requests.filter((r) => !["Completed", "Rejected", "Cancelled"].includes(r.status)).length;
   const awaitingCount = requests.filter((r) => r.status === "Ready for Pickup").length;
-
-  function toggleSelect(id: number) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
 
   return (
     <div className="space-y-5">
@@ -575,16 +515,6 @@ export default function ManageRequestsPage() {
                     <article key={r.id} className="border-t border-slate-200 first:border-t-0">
                       <div className="flex items-start gap-3">
                         <span className="h-full w-1 flex-none self-stretch" style={{ background: meta.color }} />
-                        <label className="flex-none pt-4">
-                          <input
-                            type="checkbox"
-                            checked={selected.has(r.id)}
-                            onChange={() => toggleSelect(r.id)}
-                            aria-label={`Select ${r.documents?.name ?? "document"}`}
-                            className="mt-0.5 h-4 w-4 accent-brand-600"
-                            disabled={updatingId !== null}
-                          />
-                        </label>
                         <div className="min-w-0 flex-1 py-4">
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="text-sm font-semibold text-slate-900">{r.documents?.name}</h3>
@@ -710,13 +640,9 @@ export default function ManageRequestsPage() {
       {pickupTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-xl bg-white p-5 shadow-xl">
-            <h3 className="text-base font-bold text-slate-900">
-              {pickupTarget.kind === "bulk" ? `Schedule pickup — ${pickupTarget.docs.length} requests` : "Schedule Pickup"}
-            </h3>
+            <h3 className="text-base font-bold text-slate-900">Schedule Pickup</h3>
             <p className="mt-1 text-sm text-slate-500">
-              {pickupTarget.kind === "bulk"
-                ? "The selected requests will be set to Ready for Pickup."
-                : `${pickupTarget.r.documents?.name} (${pickupTarget.r.tracking_code}) will be set to Ready for Pickup.`}{" "}
+              {pickupTarget.r.documents?.name} ({pickupTarget.r.tracking_code}) will be set to Ready for Pickup.{" "}
               You mark it{" "}
               <strong className="text-emerald-700">Completed</strong> only after the document has been handed to the student.
             </p>
@@ -785,43 +711,6 @@ export default function ManageRequestsPage() {
           </div>
         </div>
       )}
-
-      <div
-        className={`fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-full bg-slate-900 py-2.5 pl-5 pr-2.5 text-white shadow-2xl transition-transform ${
-          selected.size > 0 ? "translate-y-0" : "translate-y-[150%]"
-        }`}
-      >
-        <span className="text-[13.5px] font-semibold">{selected.size} selected</span>
-        {selectedDocs.length > 0 && (
-          <PrintDocument
-            docs={selectedDocs.map(toPrintDoc)}
-            label={`Print slips (${selectedDocs.length})`}
-            variant="registrar"
-            triggerClass="inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-white/25"
-          />
-        )}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => bulkAction("ready")}
-            className="rounded-full bg-white px-3.5 py-1.5 text-[13px] font-semibold text-slate-900 transition-colors hover:bg-slate-200"
-          >
-            Mark ready for pickup
-          </button>
-          <button
-            onClick={() => bulkAction("released")}
-            className="rounded-full bg-white/15 px-3.5 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-white/25"
-          >
-            Mark released
-          </button>
-          <button
-            onClick={() => setSelected(new Set())}
-            className="rounded-full p-1.5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
-            aria-label="Clear selection"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
