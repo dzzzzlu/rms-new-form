@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Payment } from "@/lib/types";
 import { sendNotification } from "@/lib/notify";
-import { CreditCard } from "lucide-react";
+import { CreditCard, X } from "lucide-react";
 import { toast } from "sonner";
 
 type PaymentRow = Payment & {
@@ -20,6 +20,7 @@ export default function VerifyPaymentsPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [decidingId, setDecidingId] = useState<number | null>(null);
   const [tab, setTab] = useState<"Pending" | "History">("Pending");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -178,9 +179,14 @@ export default function VerifyPaymentsPage() {
                 </span>
               </div>
               {p.payment_method === "gcash" && previews[p.id] && (
-                <a href={previews[p.id]} target="_blank" rel="noopener noreferrer">
+                <button
+                  type="button"
+                  onClick={() => setPreviewUrl(previews[p.id])}
+                  className="block w-full cursor-zoom-in"
+                  aria-label="View payment proof"
+                >
                   <img src={previews[p.id]} alt="Payment proof" className="w-full rounded-lg border hover:opacity-90" />
-                </a>
+                </button>
               )}
               <p className="text-sm text-slate-600">
                 {p.payment_method === "gcash" && <>Ref: <span className="font-medium">{p.gcash_reference}</span> · </>}
@@ -251,6 +257,27 @@ export default function VerifyPaymentsPage() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {previewUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setPreviewUrl(null)}
+        >
+          <button
+            onClick={() => setPreviewUrl(null)}
+            className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+            aria-label="Close preview"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={previewUrl}
+            alt="Payment proof"
+            className="max-h-[85vh] max-w-full rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>
