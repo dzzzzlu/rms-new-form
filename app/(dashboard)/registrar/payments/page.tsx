@@ -49,7 +49,7 @@ export default function VerifyPaymentsPage() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [tab]);
 
   async function decide(payment: PaymentRow, approve: boolean, reason?: string) {
     if (!window.confirm(approve ? "Approve this payment?" : `Reject this payment? Reason: ${reason || "No reason provided"}`)) {
@@ -118,7 +118,7 @@ export default function VerifyPaymentsPage() {
           {(["Pending", "History"] as const).map((t) => (
             <button
               key={t}
-              onClick={() => { setTab(t); setPayments([]); setPreviews({}); setLoading(false); load(); }}
+                  onClick={() => setTab(t)}
               className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
                 tab === t ? "bg-brand-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
