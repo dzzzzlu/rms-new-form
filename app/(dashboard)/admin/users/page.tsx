@@ -155,6 +155,7 @@ export default function AdminUsersPage() {
             <thead>
               <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase text-slate-500">
                 <th className="px-3 py-2.5">Name</th>
+                <th className="px-3 py-2.5">Student No.</th>
                 <th className="px-3 py-2.5">Email</th>
                 <th className="px-3 py-2.5">Role</th>
                 <th className="px-3 py-2.5">Status</th>
@@ -165,6 +166,7 @@ export default function AdminUsersPage() {
               {paginated.map((u) => (
                 <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50">
                   <td className="px-3 py-2.5 font-medium text-slate-800">{titleCaseName(u.full_name)}</td>
+                  <td className="px-3 py-2.5 text-slate-600">{u.student_number ?? "—"}</td>
                   <td className="px-3 py-2.5 text-slate-600">{u.email}</td>
                   <td className="px-3 py-2.5 capitalize">{u.role}</td>
                   <td className="px-3 py-2.5">
@@ -188,7 +190,7 @@ export default function AdminUsersPage() {
                 </tr>
               ))}
               {paginated.length === 0 && (
-                <tr><td colSpan={5} className="px-3 py-6 text-center text-sm text-slate-400">No users found.</td></tr>
+                <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-400">No users found.</td></tr>
               )}
             </tbody>
           </table>
