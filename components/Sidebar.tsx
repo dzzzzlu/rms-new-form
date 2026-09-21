@@ -46,6 +46,7 @@ const NAV: Record<Role, { label: string; href: string; icon: LucideIcon }[]> = {
   ],
   admin: [
     { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+    { label: "Manage Requests", href: "/admin/requests", icon: FileText },
     { label: "Pending Approvals", href: "/admin/approvals", icon: UserCheck },
     { label: "Manage Users", href: "/admin/users", icon: Users },
     { label: "Import Past Records", href: "/admin/import-records", icon: Upload },

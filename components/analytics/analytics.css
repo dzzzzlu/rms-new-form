@@ -517,6 +517,28 @@
 .analytics-root [data-tip] {
   cursor: default;
 }
+.analytics-root a.bar-row,
+.analytics-root a.col {
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+.analytics-root a.bar-row:hover .n,
+.analytics-root a.col:hover .v {
+  text-decoration: underline;
+}
+.analytics-root a.bar-row .n::after,
+.analytics-root a.col:hover .v::after {
+  content: " →";
+  color: var(--brand);
+  font-weight: 700;
+}
+.analytics-root tr.clickable {
+  cursor: pointer;
+}
+.analytics-root tr.clickable:hover td {
+  background: #eaf2ff !important;
+}
 .analytics-root .card.kpi {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }

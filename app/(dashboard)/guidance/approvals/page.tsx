@@ -10,6 +10,7 @@ import { toast } from "sonner";
 type GoodMoralRequest = {
   id: number;
   tracking_code: string;
+  status: string;
   purpose: string | null;
   guidance_status: ApprovalStatus | null;
   created_at: string;
@@ -21,17 +22,24 @@ type GoodMoralRequest = {
 export default function GuidanceApprovalsPage() {
   const supabase = createClient();
   const [requests, setRequests] = useState<GoodMoralRequest[]>([]);
+  const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [decidingId, setDecidingId] = useState<number | null>(null);
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const status = q.get("status");
+    if (status) setStatusFilter(status.trim());
+  }, []);
 
   async function load() {
     setLoading(true);
     const { data } = await supabase
       .from("requests")
       .select(
-        "id, tracking_code, purpose, guidance_status, created_at, user_id, documents!inner(name), profiles(full_name, student_number, course)"
+        "id, tracking_code, status, purpose, guidance_status, created_at, user_id, documents!inner(name), profiles(full_name, student_number, course)"
       )
       .eq("documents.name", "Good Moral Certificate")
       .order("created_at", { ascending: false });
@@ -102,10 +110,25 @@ export default function GuidanceApprovalsPage() {
   return (
     <div className="space-y-4">
       <div className="card">
-        <h2 className="text-xl font-bold text-brand-900">Good Moral Approvals</h2>
+        <h2 className="text-xl font-bold text-brand-900">
+          {statusFilter ? `${statusFilter} — Good Moral Approvals` : "Good Moral Approvals"}
+        </h2>
         <p className="text-sm text-slate-500">
-          Approve or reject each request before the registrar can release the certificate.
+          {statusFilter
+            ? `Showing requests currently in "${statusFilter}". Approve or reject each request before the registrar can release the certificate.`
+            : "Approve or reject each request before the registrar can release the certificate."}
         </p>
+        {statusFilter && (
+          <button
+            onClick={() => {
+              setStatusFilter("");
+              window.history.replaceState(null, "", window.location.pathname);
+            }}
+            className="mt-2 text-[13px] font-semibold text-brand-700 underline underline-offset-2"
+          >
+            Clear status filter
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -128,9 +151,16 @@ export default function GuidanceApprovalsPage() {
           <ClipboardCheck className="mb-3 h-10 w-10 text-slate-300" />
           <p className="text-sm font-medium text-slate-500">No Good Moral Certificate requests yet.</p>
         </div>
-      ) : (
+      ) : (() => {
+        const visible = statusFilter ? requests.filter((r) => r.status.toLowerCase() === statusFilter.toLowerCase()) : requests;
+        return visible.length === 0 ? (
+          <div className="empty-state card">
+            <ClipboardCheck className="mb-3 h-10 w-10 text-slate-300" />
+            <p className="text-sm font-medium text-slate-500">No requests currently in "{statusFilter}".</p>
+          </div>
+        ) : (
         <div className="space-y-3">
-          {requests.map((r) => (
+          {visible.map((r) => (
             <div key={r.id} className="card flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="font-semibold text-brand-900">{r.profiles?.full_name}</p>
@@ -173,7 +203,8 @@ export default function GuidanceApprovalsPage() {
             </div>
           ))}
         </div>
-      )}
+        );
+      })()}
 
       {rejectingId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

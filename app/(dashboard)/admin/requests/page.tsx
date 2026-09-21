@@ -2,6 +2,6 @@
 
 import ManageRequests from "@/components/requests/ManageRequests";
 
-export default function RegistrarRequestsPage() {
+export default function AdminRequestsPage() {
   return <ManageRequests />;
 }

@@ -197,10 +197,10 @@ function Columns({
   fmt = (v: number) => String(v),
   tip,
 }: {
-  items: { label: string; value: number }[];
+  items: { label: string; value: number; href?: string }[];
   green?: boolean;
   fmt?: (v: number) => string;
-  tip?: (item: { label: string; value: number }, idx: number, arr: { label: string; value: number }[]) => string | undefined;
+  tip?: (item: { label: string; value: number; href?: string }, idx: number, arr: { label: string; value: number; href?: string }[]) => string | undefined;
 }) {
   const max = niceMax(Math.max(...items.map((i) => i.value), 1));
   const ticks = [0, 1, 2, 3, 4].map((i) => fmt(Math.round((max / 4) * i)));
@@ -212,17 +212,35 @@ function Columns({
             <span key={i}>{t}</span>
           ))}
         </div>
-        {items.map((it, idx) => (
-          <div
-            key={`${it.label}-${idx}`}
-            className={`col${green ? " green" : ""}`}
-            tabIndex={0}
-            data-tip={tip ? tip(it, idx, items) : undefined}
-          >
-            <span className="v">{fmt(it.value)}</span>
-            <div className="rect" style={{ height: `${(it.value / max) * 100}%` }} />
-          </div>
-        ))}
+        {items.map((it, idx) => {
+          const inner = (
+            <>
+              <span className="v">{fmt(it.value)}</span>
+              <div className="rect" style={{ height: `${(it.value / max) * 100}%` }} />
+            </>
+          );
+          return it.href ? (
+            <a
+              key={`${it.label}-${idx}`}
+              href={it.href}
+              className={`col${green ? " green" : ""}`}
+              tabIndex={0}
+              data-tip={tip ? tip(it, idx, items) : undefined}
+              aria-label={`Open ${it.label} in requests list`}
+            >
+              {inner}
+            </a>
+          ) : (
+            <div
+              key={`${it.label}-${idx}`}
+              className={`col${green ? " green" : ""}`}
+              tabIndex={0}
+              data-tip={tip ? tip(it, idx, items) : undefined}
+            >
+              {inner}
+            </div>
+          );
+        })}
       </div>
       <div className="xlabels">
         {items.map((it, idx) => (
@@ -237,7 +255,7 @@ function BarRows({
   rows,
   unit = "requests",
 }: {
-  rows: { label: string; value: number; color: string; tipRows?: [string, unknown][] }[];
+  rows: { label: string; value: number; color: string; href?: string; tipRows?: [string, unknown][] }[];
   unit?: string;
 }) {
   if (!rows.length) return <div className="empty">No data yet.</div>;
@@ -245,18 +263,44 @@ function BarRows({
   const total = rows.reduce((s, r) => s + r.value, 0) || 1;
   return (
     <div className="bars">
-      {rows.map((r) => (
-        <div key={r.label} className="bar-row" tabIndex={0} data-tip={mk(r.label, r.tipRows ?? [
-          [unit, r.value],
-          ["Share", Math.round((r.value / total) * 100) + "%"],
-        ], r.color)}>
-          <span>{r.label}</span>
-          <div className="track">
-            <div className="fill" style={{ width: `${(r.value / max) * 100}%`, background: r.color }} />
+      {rows.map((r) => {
+        const inner = (
+          <>
+            <span>{r.label}</span>
+            <div className="track">
+              <div className="fill" style={{ width: `${(r.value / max) * 100}%`, background: r.color }} />
+            </div>
+            <span className="n">{r.value}</span>
+          </>
+        );
+        return r.href ? (
+          <a
+            key={r.label}
+            href={r.href}
+            className="bar-row"
+            tabIndex={0}
+            aria-label={`Open ${r.label} in requests list`}
+            data-tip={mk(r.label, r.tipRows ?? [
+              [unit, r.value],
+              ["Share", Math.round((r.value / total) * 100) + "%"],
+            ], r.color)}
+          >
+            {inner}
+          </a>
+        ) : (
+          <div
+            key={r.label}
+            className="bar-row"
+            tabIndex={0}
+            data-tip={mk(r.label, r.tipRows ?? [
+              [unit, r.value],
+              ["Share", Math.round((r.value / total) * 100) + "%"],
+            ], r.color)}
+          >
+            {inner}
           </div>
-          <span className="n">{r.value}</span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -267,7 +311,19 @@ export default function AnalyticsDashboard({ scope = "full" }: { scope?: Scope }
   const [facts, setFacts] = useState<Fact[]>([]);
   const [loading, setLoading] = useState(true);
   const [volPeriod, setVolPeriod] = useState<"month" | "week" | "day">("month");
+  const [listBase, setListBase] = useState("");
   const tipEl = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const path = window.location.pathname;
+    setListBase(
+      path.startsWith("/admin")
+        ? "/admin/requests"
+        : path.startsWith("/guidance")
+        ? "/guidance/approvals"
+        : "/registrar/requests"
+    );
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -351,7 +407,7 @@ export default function AnalyticsDashboard({ scope = "full" }: { scope?: Scope }
       m.set(f.status.toLowerCase(), e);
     }
     return [...m.entries()]
-      .map(([k, v]) => ({ status: STATUS_LABELS[k] ?? k, ...v, avg: v.n ? v.days / v.n : 0 }))
+      .map(([k, v]) => ({ key: k, status: STATUS_LABELS[k] ?? k, ...v, avg: v.n ? v.days / v.n : 0 }))
       .sort((a, b) => b.avg - a.avg);
   }, [scoped]);
 
@@ -412,6 +468,24 @@ export default function AnalyticsDashboard({ scope = "full" }: { scope?: Scope }
 
   const volume = volPeriod === "month" ? monthSeries : volPeriod === "week" ? weekSeries : daySeries;
   const periodTotal = volume.reduce((s, b) => s + b.count, 0);
+  const volumeLinks = useMemo(
+    () =>
+      volume.map((b) => {
+        if (volPeriod === "month") {
+          const [y, m] = b.key.split("-").map(Number);
+          const last = new Date(y, m, 0).getDate();
+          return { from: `${b.key}-01`, to: `${b.key}-${String(last).padStart(2, "0")}` };
+        }
+        if (volPeriod === "week") {
+          const e = new Date(new Date(b.key + "T00:00:00").getTime() + 6 * 864e5);
+          return { from: b.key, to: e.toISOString().slice(0, 10) };
+        }
+        return { from: b.key, to: b.key };
+      }),
+    [volume, volPeriod]
+  );
+  const linkable = scope === "full" && listBase;
+  const statusLink = (key: string) => (listBase ? `${listBase}?status=${encodeURIComponent(key)}` : "");
   const firstHalf = volume.slice(0, Math.floor(volume.length / 2)).reduce((s, b) => s + b.count, 0);
   const secondHalf = volume.slice(Math.floor(volume.length / 2)).reduce((s, b) => s + b.count, 0);
   const delta = firstHalf > 0 ? Math.round(((secondHalf - firstHalf) / firstHalf) * 100) : null;
@@ -590,7 +664,12 @@ export default function AnalyticsDashboard({ scope = "full" }: { scope?: Scope }
   }
 
   const statusBars = byStatus
-    .map((s) => ({ label: STATUS_LABELS[s.key] ?? s.key, value: s.count, color: STATUS_COLORS[s.key] ?? "var(--brand)" }))
+    .map((s) => ({
+      label: STATUS_LABELS[s.key] ?? s.key,
+      value: s.count,
+      color: STATUS_COLORS[s.key] ?? "var(--brand)",
+      href: statusLink(s.key),
+    }))
     .sort((a, b) => b.value - a.value);
 
   const docBars = byDocument
@@ -599,6 +678,7 @@ export default function AnalyticsDashboard({ scope = "full" }: { scope?: Scope }
       label: d.name,
       value: d.count,
       color: d.color,
+      href: linkable ? `${listBase}?doc=${encodeURIComponent(d.name)}` : undefined,
       tipRows: [
         ["Requests", d.count],
         [`Copies`, d.copies],
@@ -709,7 +789,7 @@ export default function AnalyticsDashboard({ scope = "full" }: { scope?: Scope }
           <div className="card-head">
             <div>
               <h2>Requests over time</h2>
-              <p className="sub">Bucketed by {volPeriod} · latest data on the right</p>
+              <p className="sub">Bucketed by {volPeriod} · click a bar to open that period in the requests list</p>
             </div>
             <div className="controls">
               <select value={volPeriod} onChange={(e) => setVolPeriod(e.target.value as "month" | "week" | "day")} aria-label="Bucket by">
@@ -721,7 +801,11 @@ export default function AnalyticsDashboard({ scope = "full" }: { scope?: Scope }
           </div>
           {volume.some((b) => b.count > 0) ? (
             <Columns
-              items={volume.map((b) => ({ label: b.label, value: b.count }))}
+              items={volume.map((b, i) => ({
+                label: b.label,
+                value: b.count,
+                href: linkable ? `${listBase}?from=${volumeLinks[i].from}&to=${volumeLinks[i].to}` : undefined,
+              }))}
               tip={(it) => volTip(it)}
             />
           ) : (
@@ -736,7 +820,7 @@ export default function AnalyticsDashboard({ scope = "full" }: { scope?: Scope }
           <div className="card-head">
             <div>
               <h2>Status pipeline</h2>
-              <p className="sub">Where requests sit right now</p>
+              <p className="sub">Where requests sit right now · click a bar to see that status</p>
             </div>
           </div>
           <BarRows rows={statusBars} />
@@ -754,11 +838,15 @@ export default function AnalyticsDashboard({ scope = "full" }: { scope?: Scope }
                 </thead>
                 <tbody>
                   {stuckByStatus.map((s) => (
-                    <tr key={s.status} tabIndex={0} data-tip={mk(s.status, [
+                    <tr key={s.key} className={statusLink(s.key) ? "clickable" : undefined} tabIndex={0} data-tip={mk(s.status, [
                       ["Open requests", s.n],
                       ["Average age", fmtDays(s.avg)],
                       ["Older than 7 days", s.stale],
-                    ])}>
+                      ...(statusLink(s.key) ? [["Click", "Open filtered request list"] as [string, unknown]] : []),
+                    ])} onClick={() => {
+                      const href = statusLink(s.key);
+                      if (href) window.location.href = href;
+                    }}>
                       <td>{s.status}</td>
                       <td className="num">{s.n}</td>
                       <td className="num">{fmtDays(s.avg)}</td>
@@ -779,7 +867,7 @@ export default function AnalyticsDashboard({ scope = "full" }: { scope?: Scope }
           <div className="card-head">
             <div>
               <h2>Most requested documents</h2>
-              <p className="sub">By number of requests (hover for copies)</p>
+              <p className="sub">By number of requests · click to open them in the list</p>
             </div>
           </div>
           <BarRows rows={docBars} />
@@ -849,7 +937,19 @@ export default function AnalyticsDashboard({ scope = "full" }: { scope?: Scope }
                   </thead>
                   <tbody>
                     {courseTop.map((c) => (
-                      <tr key={c.name} data-tip={mk(c.name, [["Requests", c.count], ["Share", Math.round((c.count / Math.max(1, total)) * 100) + "%"]], c.color)} tabIndex={0}>
+                      <tr
+                        key={c.name}
+                        className={linkable ? "clickable" : undefined}
+                        data-tip={mk(c.name, [
+                          ["Requests", c.count],
+                          ["Share", Math.round((c.count / Math.max(1, total)) * 100) + "%"],
+                          ...(linkable ? [["Click", "Open filtered request list"] as [string, unknown]] : []),
+                        ], c.color)}
+                        tabIndex={0}
+                        onClick={() => {
+                          if (linkable) window.location.href = `${listBase}?course=${encodeURIComponent(c.name)}`;
+                        }}
+                      >
                         <td>{c.name}</td>
                         <td className="num">{c.count}</td>
                         <td className="num">{Math.round((c.count / Math.max(1, total)) * 100)}%</td>
