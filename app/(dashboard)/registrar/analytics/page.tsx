@@ -2,6 +2,6 @@
 
 import AnalyticsDashboard from "@/components/analytics/AnalyticsDashboard";
 
-export default function AdminAnalyticsPage() {
+export default function RegistrarAnalyticsPage() {
   return <AnalyticsDashboard scope="full" />;
 }

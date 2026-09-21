@@ -40,6 +40,7 @@ const NAV: Record<Role, { label: string; href: string; icon: LucideIcon }[]> = {
     { label: "Dashboard", href: "/registrar/dashboard", icon: LayoutDashboard },
     { label: "Manage Requests", href: "/registrar/requests", icon: FileText },
     { label: "Verify Payments", href: "/registrar/payments", icon: CreditCard },
+    { label: "Analytics", href: "/registrar/analytics", icon: BarChart3 },
     { label: "Messages", href: "/registrar/messages", icon: MessageSquare },
     { label: "Reports", href: "/registrar/reports", icon: BarChart3 },
   ],
@@ -55,6 +56,7 @@ const NAV: Record<Role, { label: string; href: string; icon: LucideIcon }[]> = {
   guidance: [
     { label: "Dashboard", href: "/guidance/dashboard", icon: LayoutDashboard },
     { label: "Good Moral Approvals", href: "/guidance/approvals", icon: ClipboardCheck },
+    { label: "Analytics", href: "/guidance/analytics", icon: BarChart3 },
     { label: "Messages", href: "/guidance/messages", icon: MessageSquare },
   ],
 };
