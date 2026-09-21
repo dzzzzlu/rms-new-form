@@ -142,7 +142,7 @@ export default function RegisterPage() {
     }
     const phoneErr = validateContactNumber(form.contact_number);
     if (phoneErr) return phoneErr;
-    if (!doc) return "Please upload your School ID, Registration Form, or COR.";
+    if (!doc) return "Please upload a valid ID (School ID, National ID, or a government-issued ID).";
     if (!form.consent) return "Please accept the Data Privacy notice to continue.";
     return null;
   }
@@ -480,9 +480,9 @@ export default function RegisterPage() {
               <div>
                 <label className="label">Verification Document</label>
                 <p className="mb-2 text-xs leading-relaxed text-slate-500">
-                  Upload your <strong>School ID</strong>, <strong>Registration Form</strong>, or{" "}
-                  <strong>COR</strong> so the registrar can verify your identity. Accepts JPG, PNG,
-                  WEBP, or PDF — max 5 MB.
+                  Please upload a valid ID — <strong>School ID</strong>, <strong>National ID</strong>,
+                  or another <strong>government-issued ID</strong> — so the registrar can verify your
+                  identity. Accepts JPG, PNG, WEBP, or PDF — max 5 MB.
                 </p>
 
                 {doc ? (

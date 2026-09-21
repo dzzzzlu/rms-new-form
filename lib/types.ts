@@ -70,11 +70,12 @@ export interface Request {
   created_at: string;
   updated_at: string;
   pickup_at: string | null;
+  preferred_pickup_at: string | null;
 }
 
 export interface RequestWithRelations extends Request {
   documents: { name: string } | null;
-  payments?: { payment_method: string | null }[];
+  payments?: { payment_method: string | null; status?: string | null }[];
   profiles: {
     full_name: string;
     first_name: string | null;

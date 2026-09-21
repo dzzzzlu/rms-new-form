@@ -83,3 +83,25 @@ export function validateCopies(copies: number): string | null {
   if (copies > 99) return "Maximum 99 copies allowed.";
   return null;
 }
+
+export function validateGcashReference(ref: string): string | null {
+  if (!ref) return "Please enter your GCash reference number.";
+  if (!/^[0-9]{13}$/.test(ref)) return "GCash reference number must be exactly 13 digits.";
+  return null;
+}
+
+export const MAX_SCHEDULING_DAYS = 30;
+
+export function validatePreferredPickup(date: string, time: string): string | null {
+  if (!date && !time) return null;
+  if (!date) return "Please choose a preferred pickup date.";
+  if (!time) return "Please also choose a preferred pickup time.";
+  const at = new Date(`${date}T${time}`);
+  if (isNaN(at.getTime())) return "Please enter a valid preferred pickup schedule.";
+  if (at.getTime() < Date.now()) return "Preferred pickup must be in the future.";
+  const limit = new Date(Date.now() + MAX_SCHEDULING_DAYS * 864e5);
+  if (at.getTime() > limit.getTime()) {
+    return `Preferred pickup can be at most ${MAX_SCHEDULING_DAYS} days from today.`;
+  }
+  return null;
+}

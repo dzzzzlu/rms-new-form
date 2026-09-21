@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { RequestWithRelations } from "@/lib/types";
 import { sendNotification } from "@/lib/notify";
 import { printName, titleCaseName } from "@/lib/validation";
-import { Search, Inbox, Clock, Check, SlidersHorizontal } from "lucide-react";
+import { Search, Inbox, Clock, Check, SlidersHorizontal, Lock, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import PrintDocument, { type PrintDoc } from "@/components/PrintDocument";
 import { useRouter } from "next/navigation";
@@ -60,6 +60,16 @@ function isWalkIn(r: RequestWithRelations): boolean {
   return Array.isArray(r.payments) && r.payments.some((p) => p.payment_method === "walk_in");
 }
 
+function paymentVerified(r: RequestWithRelations): boolean {
+  return Array.isArray(r.payments) && r.payments.some((p) => p.status === "Verified");
+}
+
+function requirePaymentVerified(r: RequestWithRelations): boolean {
+  if (paymentVerified(r)) return true;
+  toast.error("Payment has not been verified yet. Printing and status changes are locked until the payment is verified.");
+  return false;
+}
+
 function stepsFor(isWalkIn: boolean) {
   return isWalkIn ? WALKIN_STEPS : GCASH_STEPS;
 }
@@ -82,6 +92,13 @@ function formatPickup(d: Date) {
     minute: "2-digit",
     hour12: true,
   });
+}
+
+function toDateInputValue(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function pickupInfo(iso: string) {
@@ -195,7 +212,7 @@ const [rejectReason, setRejectReason] = useState("");
   const load = useCallback(async () => {
     setLoading(true);
     const select =
-      "id, tracking_code, batch_id, purpose, copies, status, pickup_at, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), payments(payment_method), profiles(full_name, first_name, middle_name, last_name, student_number, course, contact_number, email)";
+      "id, tracking_code, batch_id, purpose, copies, status, pickup_at, preferred_pickup_at, guidance_status, clearance_status, class_list, created_at, user_id, documents(name), payments(payment_method, status), profiles(full_name, first_name, middle_name, last_name, student_number, course, contact_number, email)";
     let { data, error } = await supabase
       .from("requests")
       .select(select)
@@ -203,7 +220,7 @@ const [rejectReason, setRejectReason] = useState("");
     if (error) {
       const { data: fallback, error: fallbackError } = await supabase
         .from("requests")
-        .select(select.replace(", batch_id", "").replace(", pickup_at", ""))
+        .select(select.replace(", batch_id", "").replace(", pickup_at", "").replace(", preferred_pickup_at", ""))
         .order("created_at", { ascending: false });
       if (fallbackError) {
         toast.error("Failed to load requests.");
@@ -250,6 +267,7 @@ const [rejectReason, setRejectReason] = useState("");
     remarks?: string,
     skipConfirm?: boolean
   ) {
+    if (!requirePaymentVerified(r)) return;
     if (guidanceBlocked(r, status)) return;
 
     if (!skipConfirm) {
@@ -330,13 +348,21 @@ const [rejectReason, setRejectReason] = useState("");
   }
 
   function openPickupModal(r: RequestWithRelations) {
+    if (!requirePaymentVerified(r)) return;
     if (guidanceBlocked(r, "Ready for Pickup")) return;
-    setPickupDate("");
-    setPickupTime("");
+    if (r.preferred_pickup_at) {
+      const d = new Date(r.preferred_pickup_at);
+      setPickupDate(toDateInputValue(d));
+      setPickupTime(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
+    } else {
+      setPickupDate("");
+      setPickupTime("");
+    }
     setPickupTarget({ r });
   }
 
   function openReject(r: RequestWithRelations) {
+    if (!requirePaymentVerified(r)) return;
     setRejectReason("");
     setRejectTarget(r);
   }
@@ -555,6 +581,7 @@ const [rejectReason, setRejectReason] = useState("");
           {groups.map((group) => {
             const first = group[0];
             const student = first.profiles;
+            const groupVerified = group.every(paymentVerified);
             return (
               <section key={first.batch_id ?? `single-${first.id}`} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-gradient-to-b from-white to-slate-50 px-4 py-3">
@@ -572,7 +599,16 @@ const [rejectReason, setRejectReason] = useState("");
                     </div>
                   </div>
                   <span className="flex-1" />
-                  <PrintDocument docs={group.map(toPrintDoc)} variant="registrar" />
+                  {groupVerified ? (
+                    <PrintDocument docs={group.map(toPrintDoc)} variant="registrar" />
+                  ) : (
+                    <span
+                      title="Payment must be verified before printing"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-medium text-slate-400"
+                    >
+                      <Lock className="h-3.5 w-3.5" /> Print locked
+                    </span>
+                  )}
                   <span className="sr-only">Print claim slips</span>
                 </div>
 
@@ -581,6 +617,7 @@ const [rejectReason, setRejectReason] = useState("");
                   const steps = stepsFor(walkin);
                   const idx = stepIndexOf(r);
                   const meta = STATUS_META[r.status] ?? STATUS_META.Pending;
+                  const paid = paymentVerified(r);
                   const p = r.pickup_at
                     ? pickupInfo(r.pickup_at)
                     : null;
@@ -631,6 +668,21 @@ const [rejectReason, setRejectReason] = useState("");
                             </div>
                           )}
 
+                          {r.preferred_pickup_at && (
+                            <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-slate-500">
+                              <CalendarClock className="h-3.5 w-3.5" />
+                              Student prefers{" "}
+                              <strong>{formatPickup(new Date(r.preferred_pickup_at))}</strong>
+                            </p>
+                          )}
+
+                          {!paid && (
+                            <p className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-xs text-slate-500">
+                              <Lock className="h-3.5 w-3.5" />
+                              Awaiting payment verification — actions locked until payment is verified.
+                            </p>
+                          )}
+
                           {r.documents?.name === "Good Moral Certificate" && (
                             <p className="mt-2 text-xs text-slate-500">
                               Guidance approval:{" "}
@@ -654,7 +706,7 @@ const [rejectReason, setRejectReason] = useState("");
                                 <button
                                   key={s.label}
                                   onClick={() => handleStepClick(r, i)}
-                                  disabled={updatingId !== null || isCurrent}
+                                  disabled={updatingId !== null || isCurrent || !paid}
                                   aria-current={isCurrent}
                                   data-done={done || undefined}
                                   className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px] font-medium transition-colors ${
@@ -675,7 +727,7 @@ const [rejectReason, setRejectReason] = useState("");
                             {(r.status === "Processing" || r.status === "Ready for Pickup") && !walkin && (
                               <button
                                 onClick={() => openPickupModal(r)}
-                                disabled={updatingId !== null}
+                                disabled={updatingId !== null || !paid}
                                 className="rounded-lg border border-transparent px-2 py-1 text-[13px] font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 disabled:opacity-40"
                               >
                                 Reschedule
@@ -684,7 +736,7 @@ const [rejectReason, setRejectReason] = useState("");
                             {next && (
                               <button
                                 onClick={() => handleNext(r)}
-                                disabled={updatingId !== null}
+                                disabled={updatingId !== null || !paid}
                                 className="rounded-lg bg-brand-600 px-3 py-1 text-[13px] font-medium text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
                               >
                                 {next.label}
@@ -693,7 +745,7 @@ const [rejectReason, setRejectReason] = useState("");
                             {!isTerminal(r) && (
                               <button
                                 onClick={() => openReject(r)}
-                                disabled={updatingId !== null}
+                                disabled={updatingId !== null || !paid}
                                 className="rounded-lg border border-transparent px-2 py-1 text-[13px] font-medium text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
                               >
                                 {walkin ? "Cancel" : "Reject"}
@@ -720,6 +772,12 @@ const [rejectReason, setRejectReason] = useState("");
               You mark it{" "}
               <strong className="text-emerald-700">Completed</strong> only after the document has been handed to the student.
             </p>
+            {pickupTarget.r.preferred_pickup_at && (
+              <p className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-800">
+                Prefilled from the student's preferred pickup —{" "}
+                <strong>{formatPickup(new Date(pickupTarget.r.preferred_pickup_at))}</strong>. You can adjust it.
+              </p>
+            )}
             <div className="mt-4 space-y-3">
               <div>
                 <label className="label">Pickup date</label>

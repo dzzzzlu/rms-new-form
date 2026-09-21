@@ -5,7 +5,21 @@ import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { createClient } from "@/lib/supabase/client";
 import { PAYMENT_CONFIG } from "@/lib/payment-config";
-import { validatePurpose, validateCopies, sanitize } from "@/lib/validation";
+import {
+  validatePurpose,
+  validateCopies,
+  validateGcashReference,
+  validatePreferredPickup,
+  MAX_SCHEDULING_DAYS,
+  sanitize,
+} from "@/lib/validation";
+
+function toDateInputValue(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 type Doc = { id: number; name: string; description: string | null; fee: number; processing_days: number };
 
@@ -25,6 +39,8 @@ export default function NewRequestPage() {
   const [gcashRef, setGcashRef] = useState("");
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [classList, setClassList] = useState("");
+  const [preferredDate, setPreferredDate] = useState("");
+  const [preferredTime, setPreferredTime] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -41,6 +57,8 @@ export default function NewRequestPage() {
   const hasGoodMoral = selectedDocs.some((d) => d.name === "Good Moral Certificate");
   const quantityOf = (d: Doc) => quantities[d.id] ?? 1;
   const amount = selectedDocs.reduce((sum, d) => sum + d.fee * quantityOf(d), 0);
+  const todayStr = toDateInputValue(new Date());
+  const maxPickupDate = toDateInputValue(new Date(Date.now() + MAX_SCHEDULING_DAYS * 864e5));
 
   function setQty(id: number, value: number) {
     setQuantities((prev) => ({ ...prev, [id]: Math.max(1, Math.min(99, value)) }));
@@ -72,8 +90,14 @@ export default function NewRequestPage() {
     if (paymentMethod === "gcash") {
       if (!proofFile) return setError("Please attach your GCash payment proof.");
       if (proofFile.size > 5 * 1024 * 1024) return setError("Payment proof must be under 5MB.");
-      if (!gcashRef.trim()) return setError("Please enter your GCash reference number.");
+      const refErr = validateGcashReference(gcashRef);
+      if (refErr) return setError(refErr);
     }
+
+    const pickErr = validatePreferredPickup(preferredDate, preferredTime);
+    if (pickErr) return setError(pickErr);
+    const preferredPickupAt =
+      preferredDate && preferredTime ? new Date(`${preferredDate}T${preferredTime}`).toISOString() : null;
 
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -104,10 +128,11 @@ export default function NewRequestPage() {
           user_id: user.id,
           document_id: doc.id,
           purpose: sanitize(purpose),
-          status: "Pending",
+status: "Pending",
           class_list: doc.name === "Certificate of Enrollment" ? sanitize(classList) : null,
           copies: quantityOf(doc),
           guidance_status: doc.name === "Good Moral Certificate" ? "Pending" : null,
+          preferred_pickup_at: preferredPickupAt,
         })
         .select("id")
         .single();
@@ -369,7 +394,18 @@ export default function NewRequestPage() {
 
             <div>
               <label className="label">GCash Reference Number</label>
-              <input className="input" value={gcashRef} onChange={(e) => setGcashRef(e.target.value)} required />
+              <input
+                className="input"
+                value={gcashRef}
+                onChange={(e) => setGcashRef(e.target.value.replace(/\D/g, "").slice(0, 13))}
+                maxLength={13}
+                inputMode="numeric"
+                placeholder="Enter the 13-digit reference number"
+                required
+              />
+              <p className="mt-1 text-xs text-slate-400">
+                Must be the 13-digit reference shown in your GCash (or PayMaya) transaction.
+              </p>
             </div>
 
             <div>
@@ -391,6 +427,54 @@ export default function NewRequestPage() {
             <p className="mt-1">Pay <strong>₱{amount.toFixed(2)}</strong> in person at the registrar's office. You will give the payment and collect the documents on the same transaction.</p>
           </div>
         )}
+
+        <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">Preferred Pickup (optional)</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Choose when you would like to claim your document. The registrar confirms the final schedule — this is just a preference.
+              </p>
+            </div>
+            {(preferredDate || preferredTime) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPreferredDate("");
+                  setPreferredTime("");
+                }}
+                className="text-xs font-medium text-brand-600 underline underline-offset-2"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="label">Preferred pickup date</label>
+              <input
+                type="date"
+                className="input"
+                min={todayStr}
+                max={maxPickupDate}
+                value={preferredDate}
+                onChange={(e) => setPreferredDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label">Preferred pickup time</label>
+              <input
+                type="time"
+                className="input"
+                value={preferredTime}
+                onChange={(e) => setPreferredTime(e.target.value)}
+              />
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-slate-400">
+            Pickup can be scheduled within {MAX_SCHEDULING_DAYS} days from today.
+          </p>
+        </div>
 
         <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading ? "Submitting…" : "Submit Request"}
