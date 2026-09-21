@@ -77,6 +77,96 @@ const mk = (title: string, rows: [string, unknown][], color?: string) =>
   `<b>${color ? `<i class="sw" style="background:${color}"></i>` : ""}${esc(title)}</b>` +
   rows.map(([k, v]) => `<div class="row"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join("");
 
+const polar = (cx: number, cy: number, r: number, deg: number): [number, number] => {
+  const a = ((deg - 90) * Math.PI) / 180;
+  return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+};
+
+const annulus = (cx: number, cy: number, rOuter: number, rInner: number, a0: number, a1: number) => {
+  if (a1 - a0 >= 359.999) {
+    return `M ${cx} ${cy - rOuter} A ${rOuter} ${rOuter} 0 1 1 ${cx - 0.01} ${cy - rOuter} Z M ${cx - 0.01} ${cy - rInner} A ${rInner} ${rInner} 0 1 0 ${cx} ${cy - rInner} Z`;
+  }
+  const large = a1 - a0 > 180 ? 1 : 0;
+  const [x0, y0] = polar(cx, cy, rOuter, a0);
+  const [x1, y1] = polar(cx, cy, rOuter, a1);
+  const [x2, y2] = polar(cx, cy, rInner, a1);
+  const [x3, y3] = polar(cx, cy, rInner, a0);
+  return `M ${x0} ${y0} A ${rOuter} ${rOuter} 0 ${large} 1 ${x1} ${y1} L ${x2} ${y2} A ${rInner} ${rInner} 0 ${large} 0 ${x3} ${y3} Z`;
+};
+
+function Donut({
+  items,
+  centerValue,
+  centerLabel = "total",
+  hrefFor,
+}: {
+  items: { label: string; value: number; color: string; tipRows?: [string, unknown][] }[];
+  centerValue?: string;
+  centerLabel?: string;
+  hrefFor?: (label: string) => string | undefined;
+}) {
+  const total = items.reduce((s, i) => s + i.value, 0);
+  if (!total) return <div className="empty">No data yet.</div>;
+  let acc = 0;
+  const segments = items
+    .filter((i) => i.value > 0)
+    .map((i) => {
+      const a0 = (acc / total) * 360;
+      acc += i.value;
+      const a1 = (acc / total) * 360;
+      const href = hrefFor ? hrefFor(i.label) : undefined;
+      return { ...i, a0, a1, href };
+    });
+  const seg = (s: (typeof segments)[number]) => (
+    <path
+      d={annulus(130, 130, 104, 64, s.a0, s.a1)}
+      fill={s.color}
+      stroke="#fff"
+      strokeWidth={1.5}
+    />
+  );
+  return (
+    <div className="donut-wrap">
+      <div className="donut">
+        <svg viewBox="0 0 260 260" role="img" aria-label="Donut chart">
+          {segments.map((s, i) =>
+            s.href ? (
+              <a key={i} href={s.href} aria-label={`Open ${s.label} in requests list`}>
+                {seg(s)}
+              </a>
+            ) : (
+              <g key={i}>{seg(s)}</g>
+            )
+          )}
+        </svg>
+        <div className="center">
+          <b>{centerValue ?? total}</b>
+          <span>{centerLabel}</span>
+        </div>
+      </div>
+      <ul className="legend">
+        {segments.map((s, i) => (
+          <li key={i}>
+            <button
+              type="button"
+              tabIndex={0}
+              data-tip={mk(s.label, s.tipRows ?? [["Value", s.value], ["Share", Math.round((s.value / total) * 100) + "%"]], s.color)}
+              onClick={() => {
+                if (s.href) window.location.href = s.href;
+              }}
+            >
+              <span className="dot" style={{ background: s.color }} />
+              <span>{s.label}</span>
+              <span className="cnt">{s.value}</span>
+              <span className="pct">{Math.round((s.value / total) * 100)}%</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 const dayDiff = (a: string, b: string) => (new Date(b).getTime() - new Date(a).getTime()) / 86400000;
 
 const stats = (arr: number[]) => {
@@ -820,10 +910,31 @@ export default function AnalyticsDashboard({ scope = "full" }: { scope?: Scope }
           <div className="card-head">
             <div>
               <h2>Status pipeline</h2>
-              <p className="sub">Where requests sit right now · click a bar to see that status</p>
+              <p className="sub">Where requests sit right now · click a slice or legend row to see that status</p>
             </div>
           </div>
-          <BarRows rows={statusBars} />
+          {statusBars.some((s) => s.value > 0) ? (
+            <Donut
+              items={statusBars.map((s) => ({
+                label: s.label,
+                value: s.value,
+                color: s.color,
+                tipRows: [
+                  ["Requests", s.value],
+                  ["Share", s.value ? Math.round((s.value / total) * 100) + "%" : "0%"],
+                  ...(s.href ? [["Click", "Open in requests list"] as [string, unknown]] : []),
+                ],
+              }))}
+              centerValue={String(total)}
+              centerLabel="requests"
+              hrefFor={(label) => {
+                const hit = statusBars.find((b) => b.label === label);
+                return hit?.href;
+              }}
+            />
+          ) : (
+            <div className="empty">No requests yet.</div>
+          )}
           <h2 style={{ fontSize: "13.5px", marginTop: 22, marginBottom: 10 }}>How long open requests have been waiting</h2>
           {stuckByStatus.length ? (
             <div className="table-wrap" style={{ maxHeight: 220 }}>
@@ -1053,6 +1164,16 @@ export default function AnalyticsDashboard({ scope = "full" }: { scope?: Scope }
                 Export CSV
               </button>
             </div>
+            {totalRevenue > 0 && (
+              <Donut
+                items={[
+                  { label: "GCash / online", value: Math.round(gcashRevenue), color: "#00875a" },
+                  { label: "Walk-in & other", value: Math.round(nonGcashRevenue), color: "#22c55e" },
+                ]}
+                centerValue={pesoS(totalRevenue)}
+                centerLabel="all time"
+              />
+            )}
             <BarRows rows={revDocBars} unit="revenue" />
             <p className="sub" style={{ marginTop: 10 }}>
               GCash / online: {pesoS(gcashRevenue)} · walk-in & other: {pesoS(nonGcashRevenue)}
