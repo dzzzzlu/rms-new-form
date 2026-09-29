@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
+import { useResendCooldown } from "@/lib/resend-cooldown";
 
 export default function VerifyCodePage() {
   return (
@@ -21,6 +22,10 @@ function VerifyCodeForm() {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
+  const [resendOk, setResendOk] = useState(false);
+  const { seconds: timer, disabled: resendDisabled, restart } = useResendCooldown();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,6 +45,31 @@ function VerifyCodeForm() {
     } else {
       router.push(`/auth/new-password?email=${encodeURIComponent(data.email)}&token=${data.token}`);
     }
+  }
+
+  async function handleResend() {
+    if (!email || resendDisabled) return;
+    setResending(true);
+    setResendError(null);
+    setResendOk(false);
+
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.error) {
+        setResendError(data.error || "Failed to resend code. Please try again.");
+      } else {
+        setResendOk(true);
+        restart();
+      }
+    } catch {
+      setResendError("Could not reach the server. Please try again in a moment.");
+    }
+    setResending(false);
   }
 
   return (
@@ -80,6 +110,25 @@ function VerifyCodeForm() {
               {loading ? "Verifying…" : "Verify Code"}
             </button>
           </form>
+
+          <div className="mt-4 text-center text-sm text-slate-500">
+            {resendOk && (
+              <p className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                A new code was sent to your email.
+              </p>
+            )}
+            {resendError && (
+              <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{resendError}</p>
+            )}
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resending || resendDisabled}
+              className="font-semibold text-brand-600 hover:underline disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:no-underline"
+            >
+              {resending ? "Sending..." : resendDisabled ? `Resend in ${timer}s` : "Resend Code"}
+            </button>
+          </div>
 
           <p className="mt-5 text-center text-sm text-slate-500">
             <Link href="/auth/forgot-password" className="inline-flex items-center gap-1 font-semibold text-brand-600 hover:underline">

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useResendCooldown } from "@/lib/resend-cooldown";
 
 function VerifyEmailForm() {
   const searchParams = useSearchParams();
@@ -15,14 +16,8 @@ function VerifyEmailForm() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [timer, setTimer] = useState(10);
   const [resendError, setResendError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!email) return;
-    const interval = setInterval(() => setTimer((t) => (t > 0 ? t - 1 : 0)), 1000);
-    return () => clearInterval(interval);
-  }, [email]);
+  const { seconds: timer, disabled: resendDisabled, restart } = useResendCooldown();
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
@@ -84,7 +79,7 @@ function VerifyEmailForm() {
   }
 
   async function handleResend() {
-    if (!email || timer > 0) return;
+    if (!email || resendDisabled) return;
     setResending(true);
 
     try {
@@ -96,7 +91,7 @@ function VerifyEmailForm() {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         toast.success("New code sent!");
-        setTimer(10);
+        restart();
         setResendError(null);
       } else {
         setResendError(data.error || "Failed to resend code.");
@@ -124,19 +119,19 @@ function VerifyEmailForm() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="card max-w-md text-center space-y-4">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100 p-6">
+        <div className="card w-full max-w-3xl text-center space-y-8 px-10 py-16 sm:px-16 sm:py-20">
+          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+            <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-slate-800">Email Verified!</h2>
-          <p className="text-sm text-slate-600">Your account is now waiting for approval.</p>
-          <p className="text-xs text-slate-400">
+          <h2 className="text-4xl sm:text-5xl font-bold text-slate-900">Email Verified!</h2>
+          <p className="text-xl text-slate-600">Your account is now waiting for approval.</p>
+          <p className="mx-auto max-w-lg text-lg leading-relaxed text-slate-500">
             A registrar admin will review your registration — you&#39;ll receive an email once your account is approved.
           </p>
-          <p className="text-base">
+          <p className="pt-2 text-xl">
             <Link href="/login" className="font-semibold text-brand-600 hover:underline">
               Back to login
             </Link>
@@ -194,17 +189,14 @@ function VerifyEmailForm() {
         </form>
 
         <div className="text-sm text-slate-500">
-          {timer > 0 ? (
-            <p>Resend code in {timer}s</p>
-          ) : (
-            <button
-              onClick={handleResend}
-              disabled={resending}
-              className="text-blue-600 hover:underline font-medium"
-            >
-              {resending ? "Sending..." : "Resend Code"}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={resending || resendDisabled}
+            className="font-medium text-blue-600 hover:underline disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:no-underline"
+          >
+            {resending ? "Sending..." : resendDisabled ? `Resend in ${timer}s` : "Resend Code"}
+          </button>
           {resendError && (
             <p className="mt-2 break-all text-xs text-red-600">
               Could not send the code: <span className="font-mono">{resendError}</span>
